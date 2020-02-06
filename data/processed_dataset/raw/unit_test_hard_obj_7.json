@@ -1,0 +1,89 @@
+[
+    {
+        "image_index": 0,
+        "objects": [
+            {
+                "color": "blue",
+                "size": "large",
+                "shape": "cube",
+                "material": "rubber"
+            },
+            {
+                "color": "blue",
+                "size": "large",
+                "shape": "cube",
+                "material": "rubber"
+            },
+            {
+                "color": "blue",
+                "size": "large",
+                "shape": "cube",
+                "material": "rubber"
+            },
+            {
+                "color": "red",
+                "size": "large",
+                "shape": "cube",
+                "material": "rubber"
+            },
+            {
+                "color": "blue",
+                "size": "small",
+                "shape": "cube",
+                "material": "rubber"
+            },
+            {
+                "color": "blue",
+                "size": "large",
+                "shape": "sphere",
+                "material": "rubber"
+            },
+            {
+                "color": "blue",
+                "size": "large",
+                "shape": "cube",
+                "material": "metal"
+            }
+        ],
+        "relationships":{
+            "right": [[], [0], [0,1], [0,1,2], [0,1,2,3], [0,1,2,3,4], [0,1,2,3,4,5],[0,1,2,3,4,5,6]],
+            "behind":[[], [], [], [], [], [], []], 
+            "front": [[], [], [], [], [], [], []],
+            "left": [[0,1,2,3,4,5,6], [0,1,2,3,4,5], [0,1,2,3,4], [0,1,2,3], [0,1,2], [0, 1], [0], []]
+        },
+        "image_filename": "fake",
+        "split": "test",
+        "directions": {
+            "right": [
+                0.6563112735748291,
+                0.7544902563095093,
+                -0.0
+            ],
+            "behind": [
+                -0.754490315914154,
+                0.6563112735748291,
+                0.0
+            ],
+            "above": [
+                0.0,
+                0.0,
+                1.0
+            ],
+            "below": [
+                -0.0,
+                -0.0,
+                -1.0
+            ],
+            "left": [
+                -0.6563112735748291,
+                -0.7544902563095093,
+                0.0
+            ],
+            "front": [
+                0.754490315914154,
+                -0.6563112735748291,
+                -0.0
+            ]
+            }
+    }
+]
