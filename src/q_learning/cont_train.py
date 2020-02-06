@@ -317,10 +317,9 @@ if __name__ == '__main__':
     # update the cmd_args corresponding to the info we have
     cmd_args.graph_file_name = graph_file_name
 
-    lr4_10_model_path = os.path.join(model_dir, "3_1_1_1_1_DQN.pkl")
-    model = torch.load(lr4_10_model_path, map_location=torch.device('cuda'))
-    # config = get_config()
-    # refrl = RefRL(scene_dataset, config, graphs)
+    model_path = os.path.join(model_dir, "3_1_1_1_1_DQN.pkl")
+    print(model_path)
+    model = torch.load(model_path, map_location=torch.device('cuda'))
 
     graphs, scene_dataset = create_dataset(data_dir, scenes_path, graphs_path)
     logging.info ("start cont training")
