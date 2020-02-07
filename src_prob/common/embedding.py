@@ -301,25 +301,7 @@ class GNNNode(torch.nn.Module):
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         x = self.embedding_layer(x)
-        # edge_attr = self.embedding_layer(edge_attr)
-
         x = F.relu(self.conv1(x, edge_index))
-        # x, edge_index, edge_attr, batch, _, _ = self.pool1(x, edge_index, edge_attr, batch)
-        # x1 = self.l1(x)
-
-        # x = F.relu(self.conv2(x, edge_index, edge_attr))
-        # x, edge_index, edge_attr, batch, _, _ = self.pool2(x, edge_index, edge_attr, batch)
-        # x2 = self.l2(x)
-
-        # x = F.relu(self.conv3(x, edge_index))
-        # x, edge_index, edge_attr, batch, _, _ = self.pool3(x, edge_index, edge_attr, batch)
-        # x3 = self.l3(x)
-
-        # x = F.relu(self.conv4(x, edge_index, edge_attr))
-        # x, edge_index, edge_attr, batch, _, _ = self.pool4(x, edge_index, edge_attr, batch)
-        # x4 = self.l4(x)
-
-        # x = x1 + x2 + x3 + x4
         
         x = F.relu(self.lin1(x))
         x = F.dropout(x, p=0.3, training=self.training)
