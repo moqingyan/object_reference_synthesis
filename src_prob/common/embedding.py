@@ -27,32 +27,13 @@ from functools import wraps
 from utils import get_config
 from graphConvE import GraphConvE
 
-def add_method(cls):
-    def decorator(func):
-        @wraps(func) 
-        def wrapper(self, *args, **kwargs): 
-            return func(self, *args, **kwargs)
-        setattr(cls, func.__name__, wrapper)
-        # Note we are not binding func, but wrapper which accepts self but does exactly the same as func
-        return func # returning func means func can still be used normally
-    return decorator
-
-
 def graph2data(graph, attr_encoder):
     x = attr_encoder.get_embedding(graph.get_nodes())
     edge_index, edge_types = graph.get_edge_info()
     edge_attrs = torch.tensor(attr_encoder.get_embedding([f"edge_{tp}" for tp in edge_types]))
     return Data(torch.tensor(x), torch.tensor(edge_index), torch.tensor(edge_attrs), graph.target_id)
-    
-# @add_method(Data)
-# def update_data(self, graph, attr_encoder):
-#     x = attr_encoder.get_embedding( [ node.name for node in graph.nodes])
-#     edge_index, edge_types = graph.get_edge_info()
-#     edge_attrs = torch.tensor(attr_encoder.get_embedding(edge_types))
-#     self.edge_attrs = edge_attrs
-#     self.edge_index = torch.tensor(edge_index)
-#     self.x = torch.tensor(x)
 
+# Process a dataset out of a scene
 class SceneDataset(InMemoryDataset):
     def __init__(self, root, config, transform=None, pre_transform=None):
         self.config = config
@@ -193,6 +174,7 @@ class GNNGlobal(torch.nn.Module):
 
         return x
 
+# The Graph Neural network structure for both local and global embedding
 class GNNGL(torch.nn.Module):
     def __init__(self, dataset, embedding_layer, hidden_dim = cmd_args.hidden_dim):
         super().__init__()
@@ -301,26 +283,8 @@ class GNNNode(torch.nn.Module):
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         x = self.embedding_layer(x)
-        # edge_attr = self.embedding_layer(edge_attr)
 
         x = F.relu(self.conv1(x, edge_index))
-        # x, edge_index, edge_attr, batch, _, _ = self.pool1(x, edge_index, edge_attr, batch)
-        # x1 = self.l1(x)
-
-        # x = F.relu(self.conv2(x, edge_index, edge_attr))
-        # x, edge_index, edge_attr, batch, _, _ = self.pool2(x, edge_index, edge_attr, batch)
-        # x2 = self.l2(x)
-
-        # x = F.relu(self.conv3(x, edge_index))
-        # x, edge_index, edge_attr, batch, _, _ = self.pool3(x, edge_index, edge_attr, batch)
-        # x3 = self.l3(x)
-
-        # x = F.relu(self.conv4(x, edge_index, edge_attr))
-        # x, edge_index, edge_attr, batch, _, _ = self.pool4(x, edge_index, edge_attr, batch)
-        # x4 = self.l4(x)
-
-        # x = x1 + x2 + x3 + x4
-        
         x = F.relu(self.lin1(x))
         x = F.dropout(x, p=0.3, training=self.training)
         x = F.relu(self.lin2(x))
@@ -336,22 +300,3 @@ if __name__ == "__main__":
         config = json.load(config_file)
     scene_dataset = SceneDataset(root, config)
     scene_dataset.shuffle()
-    print("blah")
-
-    # def test(loader):
-    #     model.eval()
-
-    #     correct = 0
-    #     for data in loader:
-    #         data = data.to(device)
-    #         pred = model(data).max(dim=1)[1]
-    #         correct += pred.eq(data.y).sum().item()
-    #     return correct / len(loader.dataset)
-
-
-    # for epoch in range(1, 201):
-    #     loss = train(epoch)
-    #     train_acc = test(train_loader)
-    #     test_acc = test(test_loader)
-    #     print('Epoch: {:03d}, Loss: {:.5f}, Train Acc: {:.5f}, Test Acc: {:.5f}'.
-    #         format(epoch, loss, train_acc, test_acc))

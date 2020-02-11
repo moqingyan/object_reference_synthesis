@@ -9,6 +9,7 @@ import numpy as np
 #                              with the given name to the list of
 #                              pairs of objects that satisfy that
 #                              relation)
+
 class GroundTuples:
     def __init__(self, unary, binary):
         self.unary = unary

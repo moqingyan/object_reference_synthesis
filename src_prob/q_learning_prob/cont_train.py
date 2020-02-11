@@ -43,7 +43,6 @@ def optimize_model_DQ(memory, policy_net, target_net, optimizer):
         return
 
     transitions = memory.sample(batch_size)
-    # logging.info(f"Transitions: {transitions}")
     
     # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
     # detailed explanation). This converts batch-array of Transitions
@@ -138,31 +137,21 @@ def episode(policy, target, data_point, graph, config, attr_encoder, memory, tot
     else:
         return False, env.clauses[:-1], env.obj_poss_left[-2]
 
-dc = [2628, 4166, 4201, 4629, 5028, 5052, 513, 5181, 5282, 5686, 5730]
-
 # for each of the problem, we start to overfit the exact problem
 def cont_single(file_name, datapoint, model, graphs, save_dir, attr_encoder, config, save=True, n=10):
 
     file_path = os.path.join(save_dir, str(file_name))
     exist = os.path.exists(file_path)
     logging.info(f"task: {file_name}, {exist}")
-    # if exist:
-    #     logging.info("skip")
-    #     return
-    if not file_name in dc:
+    if exist:
+        logging.info("skip")
         return
-
-    with open (file_path, 'r') as f:
-        print (f.read())
-
-    file_name = str(file_name) + "_1"
-
+    
     total_ct = 0
     memory = ReplayMemory(10000)
     method = None
     
     policy = copy.deepcopy(model.policy)
-
     target = copy.deepcopy(policy)
     target.eval()
 
@@ -225,58 +214,12 @@ def cont_single(file_name, datapoint, model, graphs, save_dir, attr_encoder, con
 
     return success_progs
 
-# def meta_f(policy, graphs, save_dir):
-#     def use_cont_single(datapoint, data_ct):
-#         cont_single(policy, datapoint, graphs, )
-#     return use_cont_single
-
+# This is for multiprocessing.
 def cont_multiple(model, dataset, graphs, save_dir, attr_encoder, config):
     num_process = 10
     pool = mp.Pool(num_process)
     dataloader = DataLoader(dataset)
-
     pool.starmap( partial(cont_single, model = model, graphs=graphs, save_dir=save_dir, attr_encoder=attr_encoder, config=config), enumerate(dataloader))
-
-# def test(dataset, graphs, config):
-
-#     if os.path.exists(cmd_args.model_path) and os.path.getsize(cmd_args.model_path) > 0:
-#         model = torch.load(cmd_args.model_path)
-    
-#         # close to EPS_END
-#         DC.steps_done = 10000
-        
-#     else: 
-#         raise Exception("model not found")
-
-    
-#     target_decoder = type(model.decoder)()
-#     target = DQPolicy(dataset, target_decoder)
-#     target.load_state_dict(model.policy.state_dict())
-#     target.eval()
-
-#     data_loader = DataLoader(dataset)
-
-#     for it in range(cmd_args.episode_iter):
-#         logging.info(f"training iteration: {it}")
-        
-#         success_ct = 0
-#         total_loss = 0.0
-#         total_ct = 0
-
-#         for data_point, ct in zip(data_loader, tqdm(range(len(data_loader)))):
-            
-#             logging.info(f"task ct: {ct}")
-            
-#             graph = graphs[data_point.graph_id]
-#             suc = episode(model.policy, target, data_point, graph, config, dataset.attr_encoder, model.memory, total_ct, model.optimizer)
-
-#             total_ct += 1
-#             if suc:
-#                 success_ct += 1
-
-#         logging.info(f"success count: {success_ct}")
-
-#     print('Complete')
 
 if __name__ == '__main__':
 
@@ -301,7 +244,6 @@ if __name__ == '__main__':
     raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
     scenes_path = os.path.abspath(os.path.join(raw_path, scene_file_name))
     graphs_path = os.path.join(raw_path, graph_file_name)
-
 
     # update the cmd_args corresponding to the info we have
     cmd_args.graph_file_name = graph_file_name

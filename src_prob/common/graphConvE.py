@@ -3,12 +3,13 @@ from torch.nn import Parameter
 from torch_geometric.nn.conv import MessagePassing
 import math
 
-
 def uniform(size, tensor):
     bound = 1.0 / math.sqrt(size)
     if tensor is not None:
         tensor.data.uniform_(-bound, bound)
 
+# The GraphConv differs from the standard library in additive message passing 
+# rather than multiplicative
 class GraphConvE(MessagePassing):
     r"""The graph neural network operator from the `"Weisfeiler and Leman Go
     Neural: Higher-order Graph Neural Networks"

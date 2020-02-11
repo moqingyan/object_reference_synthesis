@@ -298,7 +298,7 @@ if __name__ == '__main__':
     # arrange all the directories
     data_dir = os.path.abspath(os.path.join(os.path.abspath(__file__), "../../../data"))
     model_dir = os.path.abspath(os.path.join(data_dir, "model/DQN_model"))
-    cont_res_dir = os.path.abspath(os.path.join(data_dir, "eval_result/DQN_d2/unit_hard_7"))
+    cont_res_dir = os.path.abspath(os.path.join(data_dir, "eval_result/DQN_d2/unit_test_hard_7"))
 
     scene_file_name = "unit_test_hard_obj_7.json"
     graph_file_name = "unit_test_hard_obj_7.pkl"
@@ -324,17 +324,12 @@ if __name__ == '__main__':
     graphs, scene_dataset = create_dataset(data_dir, scenes_path, graphs_path)
     logging.info ("start cont training")
 
+    
     dataloader = DataLoader(scene_dataset)
     for ct, datapoint in enumerate(dataloader):
+        start_time = time.time()
         cont_single(ct, datapoint, model, graphs, cont_res_dir, scene_dataset.attr_encoder, scene_dataset.config, save=True, n=10)
-
-        # cont_single(refrl.policy, datapoint, graphs, os.path.join(cont_res_dir, str(ct)), refrl.dataset.attr_encoder, refrl.config)
-    start_time = time.time()
-    # cont_multiple(model, scene_dataset, graphs, cont_res_dir, scene_dataset.attr_encoder, scene_dataset.config)
-
-    # for ct, datapoint in enumerate(dataloader):
-    #     logging.info (ct)
-    #     cont_single(ct, datapoint, model, graphs, cont_res_dir, scene_dataset.attr_encoder, scene_dataset.config)
-    end_time = time.time()
-
-    logging.info (f"finished_training in {end_time - start_time}")
+        end_time = time.time()
+        logging.info (f"finished_training in {end_time - start_time}")
+        
+    print(f"time used: {end_time - start_time}")

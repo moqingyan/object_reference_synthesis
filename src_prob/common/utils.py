@@ -15,9 +15,6 @@ AVAILABLE_OBJ_DICT["2"] = ["0", "1"]
 ATTRS = ["color", "size", "shape", "material"]
 CENTER_RELATION = ["right_center", "behind_center"]
 
-PORT = 8890
-LOCALHOST = "127.0.0.1"
-
 class NodeType(Enum):
 
     var = 1
@@ -132,6 +129,7 @@ def policy_gradient_loss(reward_history, prob_history):
     loss = torch.sum( Variable(rewards) * prob_history, -1).mul(-1)
     return loss
 
+# process different types of reward
 def get_reward(env):
 
     reward = 0
@@ -148,9 +146,6 @@ def get_reward(env):
     elif cmd_args.reward_type == "eliminated":
         reward = 0
         if (len(env.obj_poss_left) >= 2):
-            # if env.obj_poss_left[-2] - env.obj_poss_left[-1] == 0:
-            #     return -1 / env.obj_poss_left[0]
-            # else:
             reward = (env.obj_poss_left[-2] - env.obj_poss_left[-1]) / len(env.graph.scene["objects"])
 
     elif cmd_args.reward_type == "no_intermediate":
@@ -162,15 +157,14 @@ def get_reward(env):
         if (len(env.obj_poss_left) >= 2):
             reward = env.obj_poss_left[-2] - env.obj_poss_left[-1]
 
-    # print(f"reward: {reward}")
     return reward
 
+# Get the final reward
 def get_final_reward(env):
-    # logging.info("getting final reward")
+    
     if not cmd_args.reward_penalty :
         return 0
     else: 
-        # print(len(env.graph.scene["objects"]))
         if not env.success:
             if cmd_args.reward_type == "preserved": 
                 return -1
@@ -181,7 +175,6 @@ def get_final_reward(env):
             elif cmd_args.reward_type == "only_success":
                 return -1
         else:
-        # if env.success:
             if cmd_args.reward_type == "preserved": 
                 return 1
             elif cmd_args.reward_type == "eliminated":
@@ -190,9 +183,8 @@ def get_final_reward(env):
                 return 1
             if cmd_args.reward_type == "only_success":
                 return 1
-        # else:
-        #     return 0
 
+# Generate a configuration dict
 def get_config():
     operation_list = ["size", "color", "shape", "material"]
     choices = dict() 
@@ -250,7 +242,6 @@ def get_all_clauses(config):
                     clauses.append([op, var1, var2])
 
     return clauses 
-
 
 def get_reachable_clauses(clauses, refs):
     reachable = []
