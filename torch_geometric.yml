@@ -1,4 +1,4 @@
-name: torch_graphic
+name: torch_geometric
 channels:
   - pytorch
   - defaults
