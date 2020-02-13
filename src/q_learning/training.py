@@ -225,18 +225,3 @@ def train(dataset, graphs, config):
             torch.save(model, model_path)
 
     print('Complete')
-
-if __name__ == "__main__":
-
-    decoder_name = "GlobalDecoder"
-    policy = DQPolicy(dataset, decoder_name)
-    decoder = policy.decoder
-    current_it = 0
-    memory = ReplayMemory(10000)
-    optimizer = optim.RMSprop(policy.parameters(), lr=cmd_args.lr)
-    DC.steps_done = 0
-    model = Learning_Model(decoder, policy, memory, optimizer, current_it, DC.steps_done)
-
-    model_name = 0
-    model_path = os.path.join(cmd_args.model_save_dir, model_name)
-    torch.save(model, model_path)

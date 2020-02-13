@@ -10,7 +10,7 @@ import torch.nn.functional as F
 common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
 
-from scene2graph import Graph2, GraphNode, Edge, NodeType, EdgeType
+from scene2graph import Graph, GraphNode, Edge, NodeType, EdgeType
 from cmd_args import cmd_args
 from utils import AVAILABLE_OBJ_DICT, Encoder, get_all_clauses
 from cmd_args import logging

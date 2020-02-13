@@ -170,8 +170,6 @@ def cont_single(file_name, datapoint, model, graphs, save_dir, attr_encoder, con
         logging.info("skip")
         return
 
-    file_name = str(file_name) + "_1"
-
     total_ct = 0
     memory = ReplayMemory(10000)
     method = None
@@ -238,10 +236,6 @@ def cont_single(file_name, datapoint, model, graphs, save_dir, attr_encoder, con
 
     return success_progs
 
-# def meta_f(policy, graphs, save_dir):
-#     def use_cont_single(datapoint, data_ct):
-#         cont_single(policy, datapoint, graphs, )
-#     return use_cont_single
 
 def cont_multiple(model, dataset, graphs, save_dir, attr_encoder, config):
     num_process = 5
@@ -250,46 +244,6 @@ def cont_multiple(model, dataset, graphs, save_dir, attr_encoder, config):
 
     pool.starmap( partial(cont_single, model = model, graphs=graphs, save_dir=save_dir, attr_encoder=attr_encoder, config=config), enumerate(dataloader))
 
-# def test(dataset, graphs, config):
-
-#     if os.path.exists(cmd_args.model_path) and os.path.getsize(cmd_args.model_path) > 0:
-#         model = torch.load(cmd_args.model_path)
-    
-#         # close to EPS_END
-#         DC.steps_done = 10000
-        
-#     else: 
-#         raise Exception("model not found")
-
-    
-#     target_decoder = type(model.decoder)()
-#     target = DQPolicy(dataset, target_decoder)
-#     target.load_state_dict(model.policy.state_dict())
-#     target.eval()
-
-#     data_loader = DataLoader(dataset)
-
-#     for it in range(cmd_args.episode_iter):
-#         logging.info(f"training iteration: {it}")
-        
-#         success_ct = 0
-#         total_loss = 0.0
-#         total_ct = 0
-
-#         for data_point, ct in zip(data_loader, tqdm(range(len(data_loader)))):
-            
-#             logging.info(f"task ct: {ct}")
-            
-#             graph = graphs[data_point.graph_id]
-#             suc = episode(model.policy, target, data_point, graph, config, dataset.attr_encoder, model.memory, total_ct, model.optimizer)
-
-#             total_ct += 1
-#             if suc:
-#                 success_ct += 1
-
-#         logging.info(f"success count: {success_ct}")
-
-#     print('Complete')
 
 if __name__ == '__main__':
 
@@ -298,7 +252,9 @@ if __name__ == '__main__':
     # arrange all the directories
     data_dir = os.path.abspath(os.path.join(os.path.abspath(__file__), "../../../data"))
     model_dir = os.path.abspath(os.path.join(data_dir, "model/DQN_model"))
-    cont_res_dir = os.path.abspath(os.path.join(data_dir, "eval_result/DQN_d2/unit_test_hard_7"))
+    cont_res_dir = os.path.abspath(os.path.join(data_dir, "eval_result/DQN_d2_hard_7"))
+    if not os.path.exists(cont_res_dir):
+        os.mkdir(cont_res_dir)
 
     scene_file_name = "unit_test_hard_obj_7.json"
     graph_file_name = "unit_test_hard_obj_7.pkl"

@@ -368,7 +368,7 @@ class Graph:
 
     def __init__(self, config, scene, target_id, max_var_num = cmd_args.max_var_num, hidden_dim = cmd_args.hidden_dim):
         self.config = config 
-        self.datascene = scene
+        self.scene = scene
         self.target_id = target_id
         self.obj_num = len(self.scene['objects'])
         self.max_var_num = max_var_num

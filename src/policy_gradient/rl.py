@@ -13,7 +13,7 @@ common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
 
 from cmd_args import cmd_args, logging
-from scene2graph import Graph2, GraphNode, Edge
+from scene2graph import Graph, GraphNode, Edge
 from embedding import GNN, SceneDataset, GNNLocal, GNNGL, GNNGlobal
 from torch_geometric.data import Data, DataLoader
 from torch.autograd import Variable
