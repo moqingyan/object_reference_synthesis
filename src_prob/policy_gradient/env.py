@@ -4,18 +4,19 @@ import sys
 import json 
 
 
-common_path = os.path.abspath(os.path.join(__file__, "../common"))
+common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
+
 from embedding import Data
-from scene2graph import Graph, GraphNode, Edge, NodeType, EdgeType
+from scene2graph import Graph
 from cmd_args import cmd_args
-from query import query
-from utils import get_reward, get_final_reward, Encoder, NodeType, EdgeType
+from query import SceneInterp
+from utils import get_reward, get_final_reward, Encoder, NodeType, EdgeType, get_config
 from copy import deepcopy
 
 class Env():
 
-    def __init__(self, data, graph, config, attr_encoder):
+    def __init__(self, data, graph, config, attr_encoder, is_uncertain=cmd_args.prob_dataset):
         
         self.data = deepcopy(data)
         self.graph = deepcopy(graph)
@@ -29,8 +30,14 @@ class Env():
         self.success = False
         self.possible = True 
 
-    # def reset(self, graph):
-    #     self.update_data(graph, self.attr_encoder)
+        if is_uncertain:
+            self.interp = SceneInterp(graph.scene, config, is_uncertain=True)
+        else:
+            self.interp = SceneInterp(graph.scene["ground_truth"], config, is_uncertain=False)
+        
+        self.state = self.interp.get_init_state()
+        self.is_uncertain = is_uncertain
+        
 
     # TODO: check the effect of update data on the whole dataset
     def update_data(self, binding_dict):
@@ -65,11 +72,6 @@ class Env():
     def check_possible(self, binding_dict):
         if self.success:
             return 
-
-        # for value in binding_dict.values():
-
-        #     if str(int(self.data.y)) in value:
-        #         return 
         
         if "var_0" not in binding_dict.keys():
             return 
@@ -83,14 +85,8 @@ class Env():
         if len(self.clauses) == 0:
             return torch.tensor(0, dtype=torch.float32)
             
-        binding_dict = query(self.graph.scene, self.clauses, self.config)
-
-        # poss_count = 1
-        # for value in binding_dict.values():
-        #     poss_count *= len(value)
-        
-        # unbounded_vars = cmd_args.max_var_num - len(binding_dict.keys())
-        # self.obj_poss_left.append(poss_count * (self.obj_nums ** unbounded_vars))
+        binding_dict, new_state = self.interp.state_query(self.state, self.clauses[-1])
+        self.state = new_state
 
         # update the success and possible fields
         self.check_possible(binding_dict)
@@ -116,11 +112,6 @@ class Env():
         # edge case handling
         if len(self.obj_poss_left) == 1:
             return False
-    
-        # # duplicate clauses
-        # dupes = [x for n, x in enumerate(self.clauses) if x in self.clauses[:n]]
-        # if len(dupes) > 0:
-        #     return True 
 
         # no possibilities
         if self.obj_poss_left[-1] == 0 or self.obj_poss_left[-1] == 1 :
@@ -141,11 +132,7 @@ if __name__ == "__main__":
     data_dir = os.path.abspath(__file__ + "../../../data")
     root = os.path.abspath(os.path.join(data_dir, "./processed_dataset"))
     
-
-    config_path = os.path.join(data_dir, "config.json")
-    with open(config_path, 'r') as config_file:
-        config = json.load(config_file)
-    
+    config = get_config()
     attr_encoder = Encoder(config)
 
     scenes_path = os.path.abspath(os.path.join(data_dir, f"./processed_dataset/raw/{cmd_args.scene_file_name}"))
@@ -163,5 +150,4 @@ if __name__ == "__main__":
 
     # construct an env
     env = Env(data_point, graph, config, attr_encoder)
-    # env.reset(graph)
     

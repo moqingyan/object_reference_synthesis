@@ -7,10 +7,10 @@ import json
 common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
 from embedding import Data
-from scene2graph import Graph, GraphNode, Edge, NodeType, EdgeType
+from scene2graph import Graph
 from cmd_args import cmd_args, logging
 from query import SceneInterp
-from utils import get_reward, get_final_reward, Encoder, NodeType, EdgeType
+from utils import get_reward, get_final_reward, Encoder
 from copy import deepcopy
 
 class Env():

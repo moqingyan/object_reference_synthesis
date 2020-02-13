@@ -14,7 +14,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
 
-from scene2graph import Graph, GraphNode
+from scene2graph import Graph
 from embedding import GNN, SceneDataset, GNNLocal, GNNGL, GNNGlobal, create_dataset
 from cmd_args import cmd_args, logging
 from decoder import Transition, ReplayMemory, DQPolicy, select_action, NodeDecoder, ClauseDecoder
@@ -227,13 +227,14 @@ if __name__ == '__main__':
     
     # arrange all the directories
     data_dir = os.path.abspath(os.path.join(os.path.abspath(__file__), "../../../data"))
-    model_dir = os.path.abspath(os.path.join(data_dir, "model"))
+    model_dir = os.path.abspath(os.path.join(data_dir, "model/DQN_prob_model"))
     cont_res_dir = os.path.abspath(os.path.join(data_dir, "eval_result/DQN_prob_CLEVR_testing_1000"))
-
-    scene_file_name = "img_test_prob_CLEVR_testing_data_val_1000.json"
-    graph_file_name = "img_test_prob_CLEVR_testing_data_val_1000.pkl"
-    dataset_name = "img_test_prob_CLEVR_testing_data_val_1000.pt"
-
+    if not os.path.exists(cont_res_dir):
+        os.mkdir(cont_res_dir)
+        
+    scene_file_name = "prob_CLEVR_testing_data_1000.json"
+    graph_file_name = "prob_CLEVR_testing_data_1000.pkl"
+    dataset_name = "prob_CLEVR_testing_data_1000.pt"
 
     cmd_args.graph_file_name = graph_file_name
     cmd_args.scene_file_name = scene_file_name
@@ -248,23 +249,16 @@ if __name__ == '__main__':
     # update the cmd_args corresponding to the info we have
     cmd_args.graph_file_name = graph_file_name
 
-    lr4_10_model_path = os.path.join(model_dir, "model--update1000-0.0001-penyes-eliminated-norno-img_test_prob_CLEVR_training_data_val_1000_GNNGL_GlobalDecoder/model_80.pkl")
-    model = torch.load(lr4_10_model_path, map_location=torch.device('cuda'))
-    # config = get_config()
-    # refrl = RefRL(scene_dataset, config, graphs)
-
+    model_path = os.path.join(model_dir, "CLEVR_prob.pkl")
+    model = torch.load(model_path, map_location=cmd_args.device)
+    
     graphs, scene_dataset = create_dataset(data_dir, scenes_path, graphs_path)
     logging.info ("start cont training")
 
     dataloader = DataLoader(scene_dataset)
+    start_time = time.time()
     for ct, datapoint in enumerate(dataloader):
         cont_single(ct, datapoint, model, graphs, cont_res_dir, scene_dataset.attr_encoder, scene_dataset.config, save=True, n=10)
-    start_time = time.time()
-    # cont_multiple(model, scene_dataset, graphs, cont_res_dir, scene_dataset.attr_encoder, scene_dataset.config)
-
-    # for ct, datapoint in enumerate(dataloader):
-    #     logging.info (ct)
-    #     cont_single(ct, datapoint, model, graphs, cont_res_dir, scene_dataset.attr_encoder, scene_dataset.config)
     end_time = time.time()
 
     logging.info (f"finished_training in {end_time - start_time}")

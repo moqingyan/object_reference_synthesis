@@ -107,6 +107,4 @@ if __name__ == "__main__":
     with open(graphs_path, 'rb') as graphs_file:
         graphs = pkl.load(graphs_file)
     
-    # (edge_from, edge_to), edge_type = graphs[0].get_edge_info()
-
     draw_graph(graphs[0])

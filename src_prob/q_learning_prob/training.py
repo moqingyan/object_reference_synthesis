@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn 
 import os 
 import sys
+import glob
 import json
 import pickle
 from collections import namedtuple
@@ -10,7 +11,7 @@ import torch.nn.functional as F
 common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
 
-from scene2graph import Graph, GraphNode
+from scene2graph import Graph
 from embedding import GNN, SceneDataset, GNNLocal, GNNGL, GNNGlobal
 from cmd_args import cmd_args, logging
 from decoder import Transition, ReplayMemory, DQPolicy, select_action, NodeDecoder, ClauseDecoder
@@ -21,6 +22,7 @@ from torch_geometric.data import Data, DataLoader
 from tqdm import tqdm
 from env import Env
 import copy 
+
 
 class Learning_Model:
 
@@ -137,17 +139,21 @@ def episode(policy, target, data_point, graph, config, attr_encoder, memory, tot
 
 def train(dataset, graphs, config):
 
-    if os.path.exists(cmd_args.model_path) and os.path.getsize(cmd_args.model_path) > 0:
-        model = torch.load(cmd_args.model_path)
-        # memory = model.memory
-        # decoder = model.decoder
-        # policy = model.policy
-        # optimizer = model.optimizer
-        # current_it = model.current_it
-        DC.steps_done = model.steps_done
+    construct_new = False
+
+    if os.path.exists(cmd_args.model_save_dir):
+        list_of_files = glob.glob(cmd_args.model_save_dir + '/*')
+        if not list_of_files == []:
+            latest_file = max(list_of_files, key=os.path.getctime) 
         
-    else: 
-        
+            model = torch.load(latest_file)
+            DC.steps_done = model.steps_done
+        else:
+            construct_new = True
+    else:
+        construct_new = True 
+
+    if construct_new:
         decoder = ClauseDecoder()
         policy = DQPolicy(dataset, decoder)
         current_it = 0

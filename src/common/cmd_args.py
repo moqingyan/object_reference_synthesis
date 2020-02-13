@@ -54,6 +54,7 @@ class SampleDistr(object):
 
         self.parser.add_argument('--test_iter', default=100, type=int, help="number of test iterations taken")
         self.parser.add_argument('--test_type', default="sample", type=str, help="sample/max")
+        self.parser.add_argument('--test_model', default="DQN", type=str)
         self.parser.add_argument("--beam_size", default=30, type=int)
         self.parser.add_argument("--hard_constraint", default="no", type=str)
         self.parser.add_argument("--seed", default=0, type=int)
@@ -98,45 +99,12 @@ else:
     
 cmd_args.max_node_num = cmd_args.max_var_num + cmd_args.max_obj_num + cmd_args.max_obj_num * cmd_args.max_obj_num * 2 + 2 + cmd_args.max_var_num * cmd_args.max_obj_num + 15 * cmd_args.max_obj_num + 10
 
-
 if not (type(cmd_args.test_set) == type(None)):
-    if cmd_args.test_set == "unit_test_3":
-        cmd_args.graph_file_name = f"unit_test_3_graphs_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_3_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name =  "unit_test_3.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"unit_test_3_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif cmd_args.test_set == "unit_test_2":
-        cmd_args.graph_file_name = f"unit_test_2_graphs_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_2_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name = "unit_test_2.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"unit_test_2_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif cmd_args.test_set == "unit_pos_test_3":
-        cmd_args.graph_file_name = f"unit_pos_test_3_graphs_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_pos_3_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name =  "unit_pos_test_3.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"unit_pos_test_3_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif cmd_args.test_set == "unit_pos_test_2":
-        cmd_args.graph_file_name = f"unit_pos_test_2_graphs_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_pos_2_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name = "unit_pos_test_2.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"unit_pos_test_2_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif cmd_args.test_set == "benchmark_1000":
-        cmd_args.graph_file_name = f"train_1000_graph_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_1000_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name = "CLEVR_train_scenes_1000.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"train_1000_dataset_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif "img_test" in cmd_args.test_set:
-        print(f"update scene_file_name: {cmd_args.test_set}")
-        cmd_args.graph_file_name = f"{cmd_args.test_set}_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"{cmd_args.test_set}_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name = f"{cmd_args.test_set}.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"{cmd_args.test_set}_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
+    cmd_args.graph_file_name = f"{cmd_args.test_set}_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
+    cmd_args.dataset_name = f"{cmd_args.test_set}_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
+    cmd_args.scene_file_name = f"{cmd_args.test_set}.json"
+    if cmd_args.log_name == None:
+        cmd_args.log_name = f"{cmd_args.test_set}_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
 
 print(cmd_args.target_update)
 print(cmd_args.target_update  == None)
@@ -165,8 +133,10 @@ json_path = os.path.abspath(os.path.join(data_dir, f"./temp/query-{cmd_args.lr}-
 cmd_args.json_path = json_path
 convert_str_to_bool(cmd_args)
 
+cmd_args.device = torch.device('cpu')
 if torch.cuda.is_available():
     print(f"Setting cuda device to {cmd_args.cuda_id}")
+    cmd_args.device = torch.device(f'cuda: {cmd_args.cuda_id}')
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
     torch.cuda.set_device(cmd_args.cuda_id)
 

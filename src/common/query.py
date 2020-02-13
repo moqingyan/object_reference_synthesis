@@ -8,17 +8,9 @@ import socket
 
 interpreter_path = os.path.abspath(os.path.join(__file__, "../../../dragoman/interpret"))
 from cmd_args import cmd_args, logging
-from utils import PORT, LOCALHOST, CENTER_RELATION, get_operands, get_config
+from utils import get_operands, get_config
 import numpy as np
 from interpreter import GroundTuples, BinaryClause, UnaryClause, Program, Interpreter, execute, synthesize
-
-# def interpret_json(json_path):
-#     res = subprocess.run([interpreter_path, "-i", json_path],  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#     res.check_returncode()
-#     return res.stdout.decode("utf-8")
-
-# s = socket.socket()
-# s.connect((LOCALHOST, PORT))
 
 def merge_results(res):
 
@@ -246,22 +238,3 @@ class SceneInterp():
             new_prog.append(new_clause)
 
         return new_prog
-
-
-if __name__ == "__main__":
-    data_dir = os.path.abspath(__file__ + "../../../../data")
-    raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
-    scenes_path = os.path.abspath(os.path.join(raw_path, "img_test_3_1_1_1_1_testing.json"))
-    with open(scenes_path) as scenes_file:
-        scenes = json.load(scenes_file)
-    scene = scenes[0]
-
-    # json_path = os.path.abspath(os.path.join(__file__, "../../../dragoman/examples/problem1.json"))
-    # res = interpret_json(json_path)
-    # res_dict = merge_results(res)
-    scene_interp = SceneInterp(scene)
-    ground = scene_interp.ground_certain
-
-    clauses = [['size', 'large', 'var_0'], ['material', 'metal', 'var_2'], ['size', 'large', 'var_2'], ['shape', 'cylinder', 'var_2']]
-    prog = scene_interp.clauses2prog(clauses)
-    print(prog)

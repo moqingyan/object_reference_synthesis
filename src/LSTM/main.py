@@ -8,13 +8,13 @@ import torch.nn.functional as F
 import numpy as np
 import time 
 
-common_path = os.path.abspath(os.path.join(__file__, "../../../common"))
-# src_path = os.path.abspath(os.path.join(__file__, "../../../s"))
+common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
 # sys.path.append(src_path)
 
 from cmd_args import cmd_args, logging
-from scene2graph import Graph, GraphNode
+cmd_args.test_model = "LSTM"
+from scene2graph import Graph
 from embedding import GNN, SceneDataset
 from torch_geometric.data import Data, DataLoader
 from torch.autograd import Variable
@@ -26,11 +26,11 @@ from utils import AVAILABLE_OBJ_DICT, policy_gradient_loss, get_reward, get_fina
 from env import Env 
 from decoder import NodeDecoder
 from rl import fit, test, RefRL
-from utils import NodeType, EdgeType, Encoder
+from utils import Encoder
 
 if __name__ == "__main__":
     
-    data_dir = os.path.abspath(__file__ + "../../../../../data")
+    data_dir = os.path.abspath(__file__ + "../../../../data")
     raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
     scenes_path = os.path.abspath(os.path.join(raw_path, cmd_args.scene_file_name))
     graphs_path = os.path.join(raw_path, cmd_args.graph_file_name)

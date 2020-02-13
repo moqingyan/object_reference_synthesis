@@ -8,18 +8,17 @@ import torch.nn.functional as F
 import numpy as np
 import time 
 
-common_path = os.path.abspath(os.path.join(__file__, "../common"))
+common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
 
 from cmd_args import cmd_args, logging
-from scene2graph import Graph, GraphNode
+from scene2graph import Graph
 from embedding import GNN, SceneDataset
 from torch_geometric.data import Data, DataLoader
 from torch.autograd import Variable
 from torch import autograd
 from torch.distributions.categorical import Categorical
 from tqdm import tqdm
-from query import query
 from utils import AVAILABLE_OBJ_DICT, policy_gradient_loss, get_reward, get_final_reward, get_config
 from env import Env 
 from decoder import NodeDecoder
@@ -28,7 +27,7 @@ from utils import NodeType, EdgeType, Encoder
 
 if __name__ == "__main__":
     
-    data_dir = os.path.abspath(__file__ + "../../../data")
+    data_dir = os.path.abspath(__file__ + "../../../../data")
     raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
     scenes_path = os.path.abspath(os.path.join(raw_path, cmd_args.scene_file_name))
     graphs_path = os.path.join(raw_path, cmd_args.graph_file_name)
@@ -73,8 +72,6 @@ if __name__ == "__main__":
     logging.info(f"Finished {cmd_args.phase} in {end_time - start_time}")
 
     print("Done")
-    
-
 
     
     

@@ -21,9 +21,9 @@ from torch import autograd
 from torch.distributions.categorical import Categorical
 from tqdm import tqdm
 from query import query
-from utils import AVAILABLE_OBJ_DICT, policy_gradient_loss, get_reward, get_final_reward,  NodeType, EdgeType, Encoder
+from utils import AVAILABLE_OBJ_DICT, policy_gradient_loss, get_reward, get_final_reward, Encoder
 from env import Env
-from decoder import AttClauseDecoder, NodeDecoder, ClauseDecoder
+from decoder import AttClauseDecoder, NodeDecoder
 
 class GDPolicy(nn.Module):
 
@@ -95,28 +95,13 @@ class NodeSelPolicy(GDPolicy):
         prob, clause, next_state = self.clause_decoder(env.state, env.graph, ref=None, eps=self.eps)
         return prob, clause, next_state
 
-# TODO: closer to the current design
-class ClausePolicy(GDPolicy):
-    def __init__(self, gnn, encoder, eps=cmd_args.eps, hidden_dim = cmd_args.hidden_dim):
-        super().__init__(gnn, encoder, eps, hidden_dim)
-        self.clause_decoder = ClauseDecoder()
-
-    def get_prob_clause(self, env):
-        # initialize the state
-        if type(env.state) == type(None):
-            env.state = self.gnn(env.data)
-
-        prob, clause, next_state = self.clause_decoder(env.state, env.graph, ref=None, eps=self.eps)
-        return prob, clause, next_state
-
 class RefRL():
 
     def __init__(self, dataset, config, graphs, hidden_dim=cmd_args.hidden_dim):
 
         embedding_layer = nn.Embedding(len(dataset.attr_encoder.lookup_list), cmd_args.hidden_dim)
-        self.gnn = GNNGL(dataset, embedding_layer)
+        self.gnn = GNNGlobal(dataset, embedding_layer)
         self.encoder = dataset.attr_encoder
-        self.gradient_steps = 0
 
         self.graphs = graphs
         self.dataset = dataset
@@ -130,7 +115,7 @@ class RefRL():
         self.config = config
         self.hidden_dim = hidden_dim
 
-        self.policy = ClausePolicy(self.gnn, self.encoder)
+        self.policy = AttLSTMPolicy(self.gnn, self.encoder)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=cmd_args.lr)
         self.episode_iter = cmd_args.episode_iter
 
@@ -200,13 +185,8 @@ def fit(refrl):
     data_loader = DataLoader(refrl.train_data)
     eps = cmd_args.eps
     print(type(eps))
-    stop = False 
-
     # with autograd.detect_anomaly():
     for it in range(cmd_args.episode_iter):
-        
-        if stop:
-            break
 
         logging.info(f"training iteration: {it}")
         success = 0
@@ -239,26 +219,9 @@ def fit(refrl):
 
             if total_ct % cmd_args.batch_size == 0:
                 refrl.optimizer.step()
-                refrl.gradient_steps += 1
-                if not type(cmd_args.max_gradient_steps) == type(None):
 
-                    if refrl.gradient_steps % cmd_args.record_gradient_steps:
-                        logging.info(f"gradient step: {refrl.gradient_steps}")
-
-                    if refrl.gradient_steps >= cmd_args.max_gradient_steps:
-                        print("hit max gradient steps")
-                        logging.info("hit max gradient steps")
-                        stop = True
-                        break
-
-            # if total_ct % cmd_args.save_num == 0 and not total_ct == 0:
-            #     torch.save(refrl, cmd_args.model_path)
-
-            if it % cmd_args.save_num == 0:
-                # model.steps_done = DC.steps_done
-                model_name = f"model_{it}.pkl"
-                model_path = os.path.join(cmd_args.model_save_dir, model_name)
-                torch.save(refrl, model_path)
+            if total_ct % cmd_args.save_num == 0 and not total_ct == 0:
+                torch.save(refrl, cmd_args.model_path)
 
         logging.info(f"at train iter {it}, success num {success}, ave loss {total_loss/ct}")
         refrl.iteration += 1

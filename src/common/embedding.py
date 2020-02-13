@@ -20,7 +20,11 @@ from torch_geometric.nn import GraphConv, TopKPooling, NNConv, SAGPooling, ARMAC
 from torch_geometric.nn import global_mean_pool as gap, global_max_pool as gmp
 
 from cmd_args import cmd_args
-from scene2graph import Graph, Edge, GraphNode
+if cmd_args.test_model == "LSTM":
+    from scene2graph import Graph2 as Graph 
+else:
+    from scene2graph import Graph
+
 from utils import NodeType, EdgeType, Encoder
 from functools import wraps 
 from utils import get_config
@@ -123,7 +127,7 @@ class GNNLocal(torch.nn.Module):
 
         self.embedding_layer = embedding_layer
         self.edge_offset = dataset.attr_encoder.edge_offset
-        self.conv = ARMAConv( hidden_dim, hidden_dim, num_layers=4)
+        self.conv = ARMAConv(hidden_dim, hidden_dim, num_layers=4)
 
         self.lin1 = torch.nn.Linear(hidden_dim, hidden_dim)
         self.lin2 = torch.nn.Linear(hidden_dim, int(hidden_dim/2))
@@ -133,10 +137,11 @@ class GNNLocal(torch.nn.Module):
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         x = self.embedding_layer(x)
-        edge_attr = edge_attr.float() / edge_attr.max()
+       
+        edge_info = edge_attr.float() / edge_attr.max()
         # edge_attr = self.embedding_layer(edge_attr + self.edge_offset)
 
-        x = F.relu(self.conv(x, edge_index, edge_weight=edge_attr))
+        x = F.relu(self.conv(x, edge_index, edge_weight=edge_info))
         x = F.relu(self.lin1(x))
         x = F.dropout(x, p=0.3, training=self.training)
         x = F.relu(self.lin2(x))

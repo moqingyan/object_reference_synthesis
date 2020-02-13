@@ -106,8 +106,8 @@ if __name__ == '__main__':
 
     # arrange all the directories
     data_dir = os.path.abspath(os.path.join(os.path.abspath(__file__), "../../../data"))
-    scene_file_name = "img_test_4_1_1_1_testing.json"
-    greedy_res = "greedy_img_test_4_1_1_1_testing.json"
+    scene_file_name = "4_1_1_1_testing.json"
+    greedy_res = "greedy_4_1_1_1_testing.json"
 
     raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
     scenes_path = os.path.abspath(os.path.join(raw_path, scene_file_name))
@@ -121,7 +121,6 @@ if __name__ == '__main__':
     prob_id = 0
     start_time = time.time()
 
-    # scene = {"objects": [{"size": "small", "color": "brown", "shape": "cylinder", "material": "metal"}, {"size": "small", "color": "brown", "shape": "cylinder", "material": "metal"}, {"size": "large", "color": "purple", "shape": "sphere", "material": "rubber"}, {"size": "large", "color": "gray", "shape": "cube", "material": "rubber"}, {"size": "small", "color": "blue", "shape": "cube", "material": "metal"}, {"size": "small", "color": "brown", "shape": "cylinder", "material": "metal"}, {"size": "small", "color": "gray", "shape": "cube", "material": "rubber"}], "relationships": {"right": [[5, 2, 1, 4], [4], [1, 4], [0, 5, 2, 1, 4], [], [2, 1, 4], [3, 0, 5, 2, 1, 4]], "behind": [[6, 3], [6, 3, 0, 5, 2], [6, 3, 0, 5], [6], [6, 3, 0, 5, 2, 1], [6, 3, 0], []], "front": [[5, 2, 1, 4], [4], [1, 4], [0, 5, 2, 1, 4], [], [2, 1, 4], [3, 0, 5, 2, 1, 4]], "left": [[6, 3], [6, 3, 0, 5, 2], [6, 3, 0, 5], [6], [6, 3, 0, 5, 2, 1], [6, 3, 0], []]}} 
     target = 0 
     
     for ct_scene, scene in enumerate(scenes):
@@ -132,31 +131,6 @@ if __name__ == '__main__':
             greedy_search = Greedy(config) 
             clause = greedy_search.get_clauses(scene, ct)
             res[prob_id] = clause
-
-    # for ct_s, raw_scene in enumerate(raw_scenes):
-    #     scene = Scene(raw_scene)
-    #     for ct_o, obj in enumerate(scene.objects):
-    #         prob_id += 1
-
-    #         # if not (prob_id == 208):
-    #         #     continue
-
-    #         # try:
-    #         print (f"scene count {ct_s}, obj count {ct_o}")
-    #         solution = greedy (obj, scene)
-    #         # except RecursionError:
-    #         #     print (len(solution.clauses))
-    #         #     solution = top()
-    #         #     solution.timeout = True
-    #         #     print (f"Fail to solve: {prob_id}")
-
-    #         res[prob_id] = (str(solution), solution.timeout)
-            
-    #         if prob_id % 100 == 0:
-    #             print (prob_id)
-    #             with open(greedy_path, 'w') as greedy_file:
-    #                 json.dump(res, greedy_file, indent=True)
-                
             
     end_time = time.time()
 

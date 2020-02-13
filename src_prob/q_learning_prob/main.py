@@ -7,7 +7,7 @@ common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
 
 from embedding import GNN, SceneDataset, GNNLocal, GNNGL, GNNGlobal
-from scene2graph import Graph, GraphNode
+from scene2graph import Graph
 from cmd_args import cmd_args, logging
 from utils import NodeType, EdgeType, Encoder, get_config, get_all_clauses, get_final_reward
 from training import train

@@ -24,10 +24,10 @@ class SampleDistr(object):
         self.parser.add_argument("--log_prefix", default="", type=str)
         self.parser.add_argument("--save_num", default=2, type=int, help="for every save_num of iteration processed, we save the model once")
         
-        self.parser.add_argument("--graph_file_name", default="10_things.pkl", type=str)
-        self.parser.add_argument("--dataset_name", default="10_things.pt", type=str)
-        self.parser.add_argument("--scene_file_name", default="10_things.json")
-        self.parser.add_argument("--test_set", default="img_test_prob_CLEVR_val_unit_2", type=str, help="preset test dataset to make life easier: unit_test_3/unit_test_2/test_1000/img_test/img_test_10/img_test_30/img_test_100")
+        self.parser.add_argument("--graph_file_name", default="prob_unit_test_2.pkl", type=str)
+        self.parser.add_argument("--dataset_name", default="prob_unit_test_2.pt", type=str)
+        self.parser.add_argument("--scene_file_name", default="prob_unit_test_2.json")
+        self.parser.add_argument("--test_set", default="prob_unit_test_2", type=str, help="preset test dataset to make life easier: prob_unit_test_2")
 
         self.parser.add_argument("--sub_loss", default="yes", type=str, help="whether use sub problems to calculate loss, yes/no")
         self.parser.add_argument("--max_sub_prob", default=20, type=int, help="The max number of sub problems to calculate loss, yes/no")
@@ -42,7 +42,7 @@ class SampleDistr(object):
         self.parser.add_argument("--gamma", default=0.95, type=float, help="reward discount factor")
 
 
-        self.parser.add_argument('--episode_iter', default=20000, type=int, help='the total number of rollouts')
+        self.parser.add_argument('--episode_iter', default=2, type=int, help='the total number of rollouts')
         self.parser.add_argument('--episode_length', default=10, type=int, help='the max rollout length in the rl process')
         self.parser.add_argument('--decay', default=0.95, type=float, help="the learning rates for the optimizers")
         self.parser.add_argument('--normalize_reward', default="no", type=str, help="whether to normalize the reward or not, yes/no")
@@ -90,48 +90,17 @@ data_dir = os.path.abspath(__file__ + "../../../../data")
 log_dir = os.path.abspath(os.path.join(data_dir, f"./log"))
 cmd_args.max_node_num = cmd_args.max_var_num + cmd_args.max_obj_num + cmd_args.max_obj_num * cmd_args.max_obj_num * 2 + 2 + cmd_args.max_var_num * cmd_args.max_obj_num + 15 * cmd_args.max_obj_num + 10
 
-
 if not (type(cmd_args.test_set) == type(None)):
-    if cmd_args.test_set == "unit_test_3":
-        cmd_args.graph_file_name = f"unit_test_3_graphs_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_3_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name =  "unit_test_3.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"unit_test_3_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif cmd_args.test_set == "unit_test_2":
-        cmd_args.graph_file_name = f"unit_test_2_graphs_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_2_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name = "unit_test_2.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"unit_test_2_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif cmd_args.test_set == "unit_pos_test_3":
-        cmd_args.graph_file_name = f"unit_pos_test_3_graphs_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_pos_3_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name =  "unit_pos_test_3.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"unit_pos_test_3_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif cmd_args.test_set == "unit_pos_test_2":
-        cmd_args.graph_file_name = f"unit_pos_test_2_graphs_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_pos_2_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name = "unit_pos_test_2.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"unit_pos_test_2_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif cmd_args.test_set == "benchmark_1000":
-        cmd_args.graph_file_name = f"train_1000_graph_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"train_1000_dataset_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name = "CLEVR_train_scenes_1000.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"train_1000_dataset_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
-    elif "img_test" in cmd_args.test_set:
-        cmd_args.graph_file_name = f"{cmd_args.test_set}_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
-        cmd_args.dataset_name = f"{cmd_args.test_set}_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
-        cmd_args.scene_file_name = f"{cmd_args.test_set}.json"
-        if cmd_args.log_name == None:
-            cmd_args.log_name = f"{cmd_args.test_set}_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
+    cmd_args.graph_file_name = f"{cmd_args.test_set}_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
+    cmd_args.dataset_name = f"{cmd_args.test_set}_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pt"
+    cmd_args.scene_file_name = f"{cmd_args.test_set}.json"
+    if cmd_args.log_name == None:
+        cmd_args.log_name = f"{cmd_args.test_set}_lr_{cmd_args.lr}_{cmd_args.reward_type}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"
 
 print(cmd_args.target_update)
-print(cmd_args.target_update  == None)
+print(cmd_args.target_update == None)
 print(cmd_args.log_name == None)
+
 if cmd_args.log_name == None:
     if not cmd_args.target_update == None:
         cmd_args.log_path = os.path.abspath(os.path.join(log_dir, f"./{cmd_args.log_prefix}_update_{cmd_args.target_update}_{cmd_args.lr}_pen{cmd_args.reward_penalty}_pre{cmd_args.reward_type}_nor{cmd_args.normalize_reward}-{cmd_args.test_set}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.log"))
@@ -156,8 +125,10 @@ json_path = os.path.abspath(os.path.join(data_dir, f"./temp/query-{cmd_args.lr}-
 cmd_args.json_path = json_path
 convert_str_to_bool(cmd_args)
 
+cmd_args.device = torch.device('cpu')
 if torch.cuda.is_available():
     print(f"Setting cuda device to {cmd_args.cuda_id}")
+    cmd_args.device = torch.device(f'cuda: {cmd_args.cuda_id}')
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
     torch.cuda.set_device(cmd_args.cuda_id)
 

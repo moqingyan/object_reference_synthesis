@@ -5,60 +5,34 @@ import numpy as np
 from torch.autograd import Variable
 from enum import Enum, unique
 from sklearn.preprocessing import LabelEncoder
-import torch.nn as nn
-from itertools import combinations 
 
 AVAILABLE_OBJ_DICT = dict()
 AVAILABLE_OBJ_DICT["0"] = ["1", "2"]
 AVAILABLE_OBJ_DICT["1"] = ["0", "2"]
 AVAILABLE_OBJ_DICT["2"] = ["0", "1"]
 ATTRS = ["color", "size", "shape", "material"]
+CENTER_RELATION = ["right", "behind"]
 
-if cmd_args.test_model == "LSTM":
-    CENTER_RELATION = ["right", "behind"]
-else:
-    CENTER_RELATION = ["right_center", "behind_center"]
+PORT = 8890
+LOCALHOST = "127.0.0.1"
 
-if cmd_args.test_model == "LSTM":
-    class NodeType(Enum):
-        obj = 0
-        var = 1
-        attr = 2
-        relation = 3 
-        target = 4 
-        center_relation = 5
-        first = 6 
-        second = 7
+class NodeType(Enum):
+    obj = 0
+    var = 1
+    attr = 2
+    relation = 3 
+    target = 4 
+    center_relation = 5
+    first = 6 
+    second = 7
 
-    class EdgeType(Enum):
-        bonding = 0
-        edge_attr = 1
-        first = 2
-        second = 3
-        target = 4
-        center_relation = 5
-
-else:
-    class NodeType(Enum):
-        obj = 10
-        var = 1
-        attr = 2
-        relation = 3 
-        target = 4 
-        center_relation = 5
-        first = 6 
-        second = 7
-        gb = 8
-        binding = 9
-
-    class EdgeType(Enum):
-        binding = 7
-        edge_attr = 1
-        first = 2
-        second = 3
-        target = 4
-        center_relation = 5
-        gb = 6
+class EdgeType(Enum):
+    bonding = 0
+    edge_attr = 1
+    first = 2
+    second = 3
+    target = 4
+    center_relation = 5
 
 # The attributes and edge types are in common over all graphs
 class Encoder():
@@ -83,33 +57,16 @@ class Encoder():
 
         self.node_attrs.append("right")
         self.node_attrs.append("behind")
-        self.node_attrs.append("center_right")
-        self.node_attrs.append("center_behind")
-        
         self.node_attrs.append("target")
         self.node_attrs.append("first_n")
         self.node_attrs.append("second_n")
-        self.node_attrs.append("gb")
-
-        for ct in range(cmd_args.max_var_num * cmd_args.max_obj_num):
-            self.node_attrs.append(f"binding_{ct}")
-
-        for ct in range(cmd_args.max_obj_num * cmd_args.max_obj_num * 2):
-            self.node_attrs.append(f"relation_{ct}")
-
-        for ct in range(cmd_args.max_obj_num * len(self.config["flattened_attr"])):
-            self.node_attrs.append(f"attr_{ct}")
-
         self.node_attrs += ([f"obj_{ct}" for ct in range(self.max_obj_num)])
         self.node_attrs += ([f"var_{ct}" for ct in range(self.max_var_num)])
-        if cmd_args.test_model == "LSTM":
-            edges = [f"edge_{ct}" for ct in range(len(EdgeType))]
-        else:
-            edges = [f"edge_{ct+1}" for ct in range(len(EdgeType))]
+        
+        edges = [f"edge_{ct}" for ct in range(len(EdgeType))]
         self.lookup_list = self.node_attrs + self.config["operation_list"] 
         self.edge_offset = len(self.lookup_list)
         self.lookup_list += edges
-        self.lookup_list += ["start"]
 
     def get_embedding(self, attr):
         if not type(attr) == list:
@@ -159,9 +116,6 @@ def get_reward(env):
     elif cmd_args.reward_type == "eliminated":
         reward = 0
         if (len(env.obj_poss_left) >= 2):
-            # if env.obj_poss_left[-2] - env.obj_poss_left[-1] == 0:
-            #     return -1 / env.obj_poss_left[0]
-            # else:
             reward = (env.obj_poss_left[-2] - env.obj_poss_left[-1]) / len(env.graph.scene["objects"])
 
     elif cmd_args.reward_type == "no_intermediate":
@@ -213,11 +167,6 @@ def get_config():
     choices["shape"] = ["cube", "cylinder", "sphere"]
     choices["material"] = ["rubber", "metal"] 
 
-    flattened_attr = []
-    for c, v in choices.items():
-        for e in v:
-            flattened_attr.append(e)
-
     edge_types = dict()
     edge_types["attributes"] = ["size", "color", "shape", "material"]
     edge_types["spatial_relation"] = ["left", "right", "front", "behind"]
@@ -228,7 +177,6 @@ def get_config():
     config["operation_list"] = operation_list
     config["choices"] = choices
     config["edge_types"] = edge_types
-    config["flattened_attr"] = flattened_attr
     return config
 
 def get_operands():
@@ -244,72 +192,3 @@ def get_operands():
     binary["behind"] = []
     
     return unary, binary
-
-def get_all_clauses(config):
-
-    clauses = []
-
-    for op in (config["edge_types"]["attributes"]):
-        for attr in config["choices"][op]:
-            for var in range(cmd_args.max_var_num):
-                clauses.append([op, attr, var])
-
-    for op in ["right", "behind"]:
-        for var1 in range(cmd_args.max_var_num):
-            for var2 in range(cmd_args.max_var_num):
-                if not var1 == var2:
-                    clauses.append([op, var1, var2])
-
-    return clauses 
-
-def get_reachable_clauses(clauses, refs):
-    reachable = []
-    not_reachable = []
-
-    for clause_ct, clause in enumerate(clauses):
-        r = False 
-        for ref in refs:
-            if ref in clause:
-                r = True 
-        if r:
-            reachable.append(clause_ct)
-        else:
-            not_reachable.append(clause_ct)
-
-    return reachable, not_reachable
-
-def get_reachable_dict(clauses, max_var_num = cmd_args.max_var_num):
-    reachable_dict = {}
-    unreachable_dict = {}
-    refs = []
-    for ct in range(max_var_num):
-        refs += (list(combinations(range(max_var_num), ct+1)))
-
-    for ref in refs:
-        reachable, not_reachable = get_reachable_clauses(clauses, ref)
-        reachable_dict[str(list(ref))] = reachable
-        unreachable_dict[str(list(ref))] = not_reachable
-
-    return reachable_dict, unreachable_dict
-
-class OneHotEmbedding(nn.Module):
-
-    def __init__(self, input_dim, output_dim):
-        super().__init__()
-        self.input_dim = input_dim
-        self.embedding_layer = nn.Linear(input_dim, output_dim)
-
-    def forward(self, x):
-        
-        encoding = torch.zeros([x.shape[0], self.input_dim])
-        encoding = encoding.scatter_(1, x.view(-1,1), 1)
-        # print(f"x:{encoding}")
-        embedding = self.embedding_layer(encoding)
-        return embedding
-
-if __name__ == "__main__":
-    config = get_config()
-    clauses = get_all_clauses(config)
-    refs = [0]
-    reachable, not_reachable = get_reachable_dict(clauses)
-    print("done")

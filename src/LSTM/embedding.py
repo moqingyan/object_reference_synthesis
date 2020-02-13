@@ -13,27 +13,38 @@ from torch.nn import Sequential as Seq, Linear, ReLU
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import remove_self_loops, add_self_loops, degree
 
-from torch_geometric.data import Data
+from torch_geometric.data import Data, DataLoader
 from torch_geometric.data import InMemoryDataset
 
-from torch_geometric.data import DataLoader
 from torch_geometric.nn import GraphConv, TopKPooling, NNConv, SAGPooling, ARMAConv
 from torch_geometric.nn import global_mean_pool as gap, global_max_pool as gmp
 
 from cmd_args import cmd_args
-from scene2graph import Graph
+from scene2graph import Graph, Edge, GraphNode
 from utils import NodeType, EdgeType, Encoder
 from functools import wraps 
 from utils import get_config
 from graphConvE import GraphConvE
 
-def graph2data(graph, attr_encoder):
-    x = attr_encoder.get_embedding(graph.get_nodes())
-    edge_index, edge_types = graph.get_edge_info()
-    edge_attrs = torch.tensor(attr_encoder.get_embedding([f"edge_{tp}" for tp in edge_types]))
-    return Data(torch.tensor(x), torch.tensor(edge_index), torch.tensor(edge_attrs), graph.target_id)
+def add_method(cls):
+    def decorator(func):
+        @wraps(func) 
+        def wrapper(self, *args, **kwargs): 
+            return func(self, *args, **kwargs)
+        setattr(cls, func.__name__, wrapper)
+        # Note we are not binding func, but wrapper which accepts self but does exactly the same as func
+        return func # returning func means func can still be used normally
+    return decorator
 
-# Process a dataset out of a scene
+# @add_method(Data)
+# def update_data(self, graph, attr_encoder):
+#     x = attr_encoder.get_embedding( [ node.name for node in graph.nodes])
+#     edge_index, edge_types = graph.get_edge_info()
+#     edge_attrs = torch.tensor(attr_encoder.get_embedding(edge_types))
+#     self.edge_attrs = edge_attrs
+#     self.edge_index = torch.tensor(edge_index)
+#     self.x = torch.tensor(x)
+
 class SceneDataset(InMemoryDataset):
     def __init__(self, root, config, transform=None, pre_transform=None):
         self.config = config
@@ -64,12 +75,10 @@ class SceneDataset(InMemoryDataset):
 
             for graph_id, graph in enumerate(graphs):
 
-                x = self.attr_encoder.get_embedding(graph.get_nodes())
+                x = self.attr_encoder.get_embedding( [ node.name for node in graph.nodes])
                 edge_index, edge_types = graph.get_edge_info()
-                edge_attrs = self.attr_encoder.get_embedding([f"edge_{tp}" for tp in edge_types])
-
-                # edge_attrs = torch.tensor(self.attr_encoder.get_embedding(edge_types))
-                data_point = Data(torch.tensor(x), torch.tensor(edge_index), torch.tensor(edge_attrs), graph.target_id)
+                edge_attrs = torch.tensor(self.attr_encoder.get_embedding([f"edge_{tp}" for tp in edge_types]))
+                data_point = Data(torch.tensor(x), torch.tensor(edge_index), edge_attrs, graph.target_id)
                 
                 # print(torch.tensor(x), torch.tensor(edge_index), edge_attrs, graph.target_id)
                 data_point.obj_num = len(graph.scene["objects"])
@@ -89,7 +98,7 @@ def create_dataset(data_dir, scenes_path, graphs_path, config=None):
 
         for scene in scenes:
             for target_id in range(len(scene["objects"])):
-                graph = Graph(config, scene, target_id, ground_truth_scene=scene["ground_truth"])
+                graph = Graph(config, scene, target_id)
                 graphs.append(graph)
 
         with open(graphs_path, 'wb') as graphs_file:
@@ -104,6 +113,7 @@ class GNNLocal(torch.nn.Module):
         super().__init__()
 
         self.embedding_layer = embedding_layer
+        self.edge_offset = dataset.attr_encoder.edge_offset
         self.conv = ARMAConv( hidden_dim, hidden_dim, num_layers=4)
 
         self.lin1 = torch.nn.Linear(hidden_dim, hidden_dim)
@@ -115,13 +125,13 @@ class GNNLocal(torch.nn.Module):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         x = self.embedding_layer(x)
         edge_attr = edge_attr.float() / edge_attr.max()
-        # edge_attr = self.embedding_layer(edge_attr)
+        # edge_attr = self.embedding_layer(edge_attr + self.edge_offset)
 
         x = F.relu(self.conv(x, edge_index, edge_weight=edge_attr))
         x = F.relu(self.lin1(x))
         x = F.dropout(x, p=0.3, training=self.training)
         x = F.relu(self.lin2(x))
-        x = torch.tanh(self.lin3(x))
+        x = F.log_softmax(self.lin3(x), dim=-1)
         # print (x.shape)
         return x
     
@@ -130,6 +140,7 @@ class GNNGlobal(torch.nn.Module):
         super().__init__()
 
         self.embedding_layer = embedding_layer
+        self.edge_offset = dataset.attr_encoder.edge_offset
 
         self.conv1 = GraphConvE(hidden_dim, hidden_dim)
         self.pool1 = SAGPooling(hidden_dim)
@@ -174,22 +185,16 @@ class GNNGlobal(torch.nn.Module):
 
         return x
 
-# The Graph Neural network structure for both local and global embedding
 class GNNGL(torch.nn.Module):
     def __init__(self, dataset, embedding_layer, hidden_dim = cmd_args.hidden_dim):
         super().__init__()
-        if not cmd_args.global_node:
-            self.global_layer = GNNGlobal( dataset, embedding_layer, hidden_dim)
+        self.global_layer = GNNGlobal( dataset, embedding_layer, hidden_dim)
         self.local_layer = GNNLocal( dataset, embedding_layer, hidden_dim)
         self.lin = torch.nn.Linear(hidden_dim * 2, hidden_dim)
-        self.embedding_layer = self.local_layer.embedding_layer
 
     def forward(self, data):
+        global_embedding = self.global_layer(data)
         local_embedding = self.local_layer(data)
-        global_embedding = None
-        if not cmd_args.global_node:
-            global_embedding = self.global_layer(data)
-        
         return local_embedding, global_embedding
 
 class GNN(torch.nn.Module):
@@ -283,8 +288,26 @@ class GNNNode(torch.nn.Module):
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
         x = self.embedding_layer(x)
+        # edge_attr = self.embedding_layer(edge_attr)
 
         x = F.relu(self.conv1(x, edge_index))
+        # x, edge_index, edge_attr, batch, _, _ = self.pool1(x, edge_index, edge_attr, batch)
+        # x1 = self.l1(x)
+
+        # x = F.relu(self.conv2(x, edge_index, edge_attr))
+        # x, edge_index, edge_attr, batch, _, _ = self.pool2(x, edge_index, edge_attr, batch)
+        # x2 = self.l2(x)
+
+        # x = F.relu(self.conv3(x, edge_index))
+        # x, edge_index, edge_attr, batch, _, _ = self.pool3(x, edge_index, edge_attr, batch)
+        # x3 = self.l3(x)
+
+        # x = F.relu(self.conv4(x, edge_index, edge_attr))
+        # x, edge_index, edge_attr, batch, _, _ = self.pool4(x, edge_index, edge_attr, batch)
+        # x4 = self.l4(x)
+
+        # x = x1 + x2 + x3 + x4
+        
         x = F.relu(self.lin1(x))
         x = F.dropout(x, p=0.3, training=self.training)
         x = F.relu(self.lin2(x))
@@ -300,3 +323,22 @@ if __name__ == "__main__":
         config = json.load(config_file)
     scene_dataset = SceneDataset(root, config)
     scene_dataset.shuffle()
+    print("blah")
+
+    # def test(loader):
+    #     model.eval()
+
+    #     correct = 0
+    #     for data in loader:
+    #         data = data.to(device)
+    #         pred = model(data).max(dim=1)[1]
+    #         correct += pred.eq(data.y).sum().item()
+    #     return correct / len(loader.dataset)
+
+
+    # for epoch in range(1, 201):
+    #     loss = train(epoch)
+    #     train_acc = test(train_loader)
+    #     test_acc = test(test_loader)
+    #     print('Epoch: {:03d}, Loss: {:.5f}, Train Acc: {:.5f}, Test Acc: {:.5f}'.
+    #         format(epoch, loss, train_acc, test_acc))

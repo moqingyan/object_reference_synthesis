@@ -6,11 +6,8 @@ from cmd_args import cmd_args
 import torch
 import torch.nn as nn
 from dataclasses import dataclass, astuple
-from utils import NodeType, EdgeType, CENTER_RELATION, get_all_clauses, get_config
-from graph_lib import BaseDiGraph
+from utils import NodeType, EdgeType, CENTER_RELATION
 
-# For compatibility, the old version of Graph is preserved here
-# The LSTM trained model need to use this graph
 @dataclass
 class GraphNode(object):
 
@@ -44,7 +41,7 @@ class Edge(object):
         return not self.__eq__(other)
 
 
-class Graph2(object):
+class Graph(object):
     
     def __init__(self, config, scene, target_id, max_var_num = cmd_args.max_var_num, hidden_dim = cmd_args.hidden_dim):
 
@@ -79,25 +76,29 @@ class Graph2(object):
 
         # All the edges between varables and objects are subjected to be removed 
         self.vo_edge_dict = {}
-        self.vo_node_dict = {}
         self.init_vo_edge_dict()
 
         self.vars = {}
         self.add_variables()
 
-        if cmd_args.global_node:
-            self.add_global_node()
+    # def get_attr_of(self, obj_id):
+    #     attrs = []
+    #     attrs_id = []
+    #     obj_idx = self.objs[obj_id]
+
+    #     for edge in self.edges:
+    #         if edge.src_idx == obj_idx:
+    #             if (self.node[edge.dst_idx].node_type == NodeType.attr) or (self.node[edge.dst_idx].node_type == NodeType.target):
+    #                 attrs.append(self.node[edge.dst_idx].name)
+    #                 attrs_id.append(edge.dst_idx)
+    #     return attrs, attrs_id
 
     def init_vo_edge_dict(self):
         for var_id in range(cmd_args.max_var_num):
             self.vo_edge_dict[var_id] = {}
-            self.vo_node_dict[var_id] = {}
 
     def add_node(self, index, node_type, name): 
         self.nodes.append(GraphNode(index, node_type, name)) 
-    
-    def remove_node(self, index):
-        self.nodes.remove(index)
 
     def add_edge(self, src_idx, dst_idx, edge_type):
         edge_index = len(self.edges)
@@ -167,25 +168,11 @@ class Graph2(object):
             self.add_node(var_idx, NodeType.var, f"var_{var_id}")
 
             # add bindings
-            # add a node between binding
             for target in range(self.obj_num):
                 target_idx = self.objs[target]
-                binding_node_idx = len(self.nodes)
-                # self.add_node(binding_node_idx, NodeType.binding, f"binding_{binding_node_idx}")
-                
                 edge_idx_1, edge_idx_2 = self.add_undirected_edge(var_idx, target_idx, EdgeType.bonding)
-                # edge_idx_3, edge_idx_4 = self.add_undirected_edge(binding_node_idx, target_idx, EdgeType.bonding)
-
                 self.vo_edge_dict[var_id][target] = edge_idx_1, edge_idx_2
-                self.vo_node_dict[var_id][target] = binding_node_idx
 
-    # one way global node
-    def add_global_node(self):
-        self.global_idx = len(self.nodes)
-        self.add_node(self.global_idx, NodeType.gb, "gb")
-        for node_id in range(len(self.nodes)):
-            self.add_edge(node_id, self.global_idx, EdgeType.gb)
-            
     # adding the edges between objects 
     def add_relations(self):
 
@@ -228,10 +215,38 @@ class Graph2(object):
         first, second, edge_type = zip(*edge_infos)
         return [ list(first), list(second)], list(edge_type)
 
-    def get_nodes(self):
-        return [ node.name for node in graph.nodes ]
     
     def update_binding(self, binding_dict):
+
+        # # go through all the edges, remove all the bonding edge that of "bonding" type,
+        # # but not in the bonding_dict
+        # # (src_idx, dst_idx, edge_type, edge_attr, edge_embedding)
+        # to_remove = []
+        # for edge_idx, edge in enumerate(self.edges):
+        #     if type(edge) == type(None):
+        #         continue
+        #     if edge.edge_type == EdgeType.bonding:
+                
+        #         # identify var name and obj names
+        #         if "var" in self.nodes[edge.src_idx].name:
+        #             var_name = self.nodes[edge.src_idx].name
+        #             obj_name = self.nodes[edge.dst_idx].name
+        #         elif "var" in self.nodes[edge.dst_idx].name:
+        #             obj_name = self.nodes[edge.src_idx].name
+        #             var_name = self.nodes[edge.dst_idx].name
+        #         else:
+        #             raise Exception("binding edge should have a var node")
+
+        #         obj_name = obj_name.split('_')[1]
+
+        #         # if the variable is not bond to anything, it is not mentioned in the
+        #         # clauses, ignore the case
+        #         if var_name not in bonding_dict.keys():
+        #             continue
+            
+        #         # if the edge does not exists in the dict, delete the edge.
+        #         if obj_name not in bonding_dict[var_name]:
+        #             to_remove.append(edge_idx)
 
         for var_id, binding in self.vo_edge_dict.items():
             
@@ -242,36 +257,6 @@ class Graph2(object):
                 if not ((f"var_{var_id}", target) in binding_dict.items()):
                     self.remove_edge(edge_idx_1)
                     self.remove_edge(edge_idx_2)
-
-    def get_attr_locs(self):
-        return self.attrs.values()
-
-    def get_rela_locs(self):
-        return self.rela_center.values()
-
-    def get_attr_or_rela_locs(self):
-        return self.attr_or_rela.values()
-
-    def get_var_locs(self, rel=None):
-        if not (type(rel) == type(None)):
-            locs = []
-            for r in rel:
-                locs.append(self.vars[r])
-            return locs
-        else:
-            return list(self.vars.values())
-
-    def get_attr_by_idx(self, idx):
-        return list(self.attrs.keys())[sel]
-
-    def get_var_by_idx(self, idx):
-        return list(self.vars.keys())[sel]
-
-    def get_rela_by_idx(self, idx):
-        return list(self.rela_center.keys())[sel]
-
-    def get_attr_or_rela_by_idx(self, idx):
-        return list(self.attr_or_rela.keys())[sel]
 
 def select_neighbor(node_idx, criteria):
     neighbors = graph.nodes[node_idx].neighbors
@@ -364,198 +349,46 @@ def search_valid_args(graph, rela_node_idx, var_node_idx):
             return True 
         return select_neighbor(node_idx, criteria)
 
-class Graph:
+    
 
-    def __init__(self, config, scene, target_id, max_var_num = cmd_args.max_var_num, hidden_dim = cmd_args.hidden_dim):
-        self.config = config 
-        self.datascene = scene
-        self.target_id = target_id
-        self.obj_num = len(self.scene['objects'])
-        self.max_var_num = max_var_num
+    # def get_node_embedding(self, node_name):
 
-        self.base_graph = BaseDiGraph() 
-        self.setup_graph_dict()
+    #     if "var_" in node_name:
+    #         embedding = self.var_encoder(torch.tensor(node_name.split("_")[1]))
+    #     elif "obj_" in node_name:
+    #         embedding = self.obj_encoder(torch.tensor(node_name.split("_")[1]))
+    #     else:
+    #         embedding = self.encoder(node_name)
 
-    def setup_graph_dict(self):
+    #     return embedding
 
-        self.base_graph.add_vertex("target")
-        
-        # Construct attributes as nodes
-        self.attrs = []
-        for attrs in self.config["choices"].values():
-            for attr in attrs:
-                self.attrs.append(attr)
-                self.base_graph.add_vertex(attr)
-
-        attr_count = 0
-        # Construct object as object nodes
-        for obj_id, obj in enumerate(self.scene['objects']):
-            self.base_graph.add_vertex(f"obj_{obj_id}")
-            
-            if cmd_args.attr_inter_node:
-                # add in edges between the object and its attributes
-                for key in self.config["choices"].keys():
-                    obj_attr = obj[key]
-                    self.base_graph.add_vertex(f"attr_{attr_count}")
-                    self.base_graph.add_undirected_edge(f"obj_{obj_id}", f"attr_{attr_count}", EdgeType.edge_attr)
-                    self.base_graph.add_undirected_edge(f"attr_{attr_count}", obj_attr, EdgeType.edge_attr)
-                    attr_count += 1
-            
-            else:
-                # add in edges between the object and its attributes
-                for key in self.config["choices"].keys():
-                    obj_attr = obj[key]
-                    self.base_graph.add_undirected_edge(f"obj_{obj_id}", obj_attr, EdgeType.edge_attr)
-                    attr_count += 1
-                
-
-            if obj_id == self.target_id:
-                self.base_graph.add_undirected_edge("target", f"obj_{obj_id}", EdgeType.edge_attr)
-
-        # Construct relation and relation center as rela-center nodes
-        # self.relations = []
-        self.rela_centers = ["center_right", "center_behind"]
-
-        for rela_center in self.rela_centers:
-            self.base_graph.add_vertex(rela_center)
-        
-        self.relations = []
-        relation_count = 0
-        for relation in self.scene['relationships']:
-            # We only care about right and behind, since the inverse is obvious
-            if relation == "right" or relation == "behind":
-
-                if relation == "right":
-                    rela_center = "center_right"
-                if relation == "behind":
-                    rela_center = "center_behind"
-
-                for object_id, related_objects in enumerate(self.scene["relationships"][relation]):
-                    for related_object_id in related_objects:
-                        self.base_graph.add_vertex(f"relation_{relation_count}")
-                        self.base_graph.add_undirected_edge(f"relation_{relation_count}", rela_center, EdgeType.center_relation)
-                        self.base_graph.add_undirected_edge(f"relation_{relation_count}", f"obj_{object_id}", EdgeType.first)
-                        self.base_graph.add_undirected_edge(f"relation_{relation_count}", f"obj_{related_object_id}", EdgeType.second)
-                        self.relations.append(f"relation_{relation_count}")
-
-                        relation_count += 1
-
-        self.attr_or_rela = self.rela_centers + self.attrs
-
-        # add variables
-        self.vars = []
-        binding_node_ct = 0
-        for var_id in range(self.max_var_num):
-            self.vars.append(f"var_{var_id}")
-            self.base_graph.add_vertex(f"var_{var_id}")
-
-            if cmd_args.binding_node:
-                for target in range(self.obj_num):
-                    self.base_graph.add_vertex(f"binding_{binding_node_ct}")
-                    self.base_graph.add_undirected_edge(f"var_{var_id}", f"binding_{binding_node_ct}", EdgeType.binding)
-                    self.base_graph.add_undirected_edge(f"obj_{target}", f"binding_{binding_node_ct}", EdgeType.binding)
-                    binding_node_ct += 1
-            else:
-                for target in range(self.obj_num):
-                    self.base_graph.add_undirected_edge(f"var_{var_id}", f"obj_{target}", EdgeType.binding)
-                    binding_node_ct += 1
-
-        # add global nodes
-        if cmd_args.global_node:
-            all_nodes = self.base_graph.get_names()
-            self.base_graph.add_vertex("gb")
-            for node in all_nodes:
-                self.base_graph.add_edge(node, "gb", EdgeType.gb)
-
-    def update_binding(self, binding_dict):
-        names = self.base_graph.get_names()
-        current_bindings = list(filter(lambda x: "binding" in x, names))
-        
-        for bd in current_bindings:
-            neighbors = self.base_graph.get_neighbour(bd)
-            for neighbor in neighbors:
-                if "var" in neighbor:
-                    var = neighbor
-                if "obj" in neighbor:
-                    obj = neighbor
-
-            if not var in binding_dict:
-                continue
-
-            if not ((var, obj) in binding_dict.items()):
-                self.base_graph.remove_vertex(bd)
-
-    def get_nodes(self):
-        return self.base_graph.get_names()
-
-    def get_edge_info(self):
-        return self.base_graph.edges()
-
-    def get_attr_locs(self):
-        names = self.base_graph.get_names()
-        idxes = []
-        for idx, name in enumerate(names):
-            if name in self.attrs:
-                idxes.append(idx)
-        return idxes
-
-    def get_rela_locs(self):
-        names = self.base_graph.get_names()
-        idxes = []
-        for idx, name in enumerate(names):
-            if name in self.rela_centers:
-                idxes.append(idx)
-        return idxes
-
-    def get_attr_or_rela_locs(self):
-        names = self.base_graph.get_names()
-        idxes = []
-        for idx, name in enumerate(names):
-            if name in self.attr_or_rela:
-                idxes.append(idx)
-        return idxes
-
-    def get_var_locs(self, rel=None):
-        names = self.base_graph.get_names()
-        if not type(rel) == type(None):
-            var = rel
-        else:
-            var = self.vars
-
-        idxes = []
-        for idx, name in enumerate(names):
-            if name in var:
-                idxes.append(idx)
-        return idxes
-
-    def get_attr_by_idx(self, idx):
-        return self.attrs[idx]
-
-    def get_var_by_idx(self, idx):
-        return self.vars[idx]
-
-    def get_rela_by_idx(self, idx):
-        rela = self.rela_centers[idx]
-        if "right" in rela:
-            return "right"
-        return "behind"
-
-    def get_attr_or_rela_by_idx(self, idx):
-        attr_or_rela = self.attr_or_rela[idx]
-        if "right" in attr_or_rela:
-            return "right"
-        if "behind" in attr_or_rela:
-            return "behind"
-        return attr_or_rela
+    # def get_edge_embedding(self, edge_type):
+    #     return self.encoder(edge_type)
 
 if __name__ == "__main__":
     # We use a configuration file to specify the edges and nodes choices
-    config = get_config()
-    clauses = get_all_clauses(config)
+    operation_list = ["left", "right", "front", "behind", "size", "color", "shape", "material"]
+    choices = dict() 
+
+    choices["size"] = ["large", "small"]
+    choices["color"] = ["blue", "red", "yellow", "green", "gray", "brown", "purple", "cyan"]
+    choices["shape"] = ["cube", "cylinder", "sphere"]
+    choices["material"] = ["rubber", "metal"] 
+
+    # edge_types = dict()
+    # edge_types["attributes"] = ["size", "color", "shape", "material"]
+    # edge_types["spatial_relation"] = ["left", "right", "front", "behind"]
+    # edge_types["target"] = ["target"]
+    # edge_types["bonding"] = ["bonding"]
+
+    config = dict()
+    config["operation_list"] = operation_list
+    config["choices"] = choices
+    # config["edge_types"] = edge_types
 
     data_dir = os.path.abspath(__file__ + "../../../../data")
     raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
-    graphs_path = os.path.join(raw_path, "unit_test_3_graphs.pkl")
+    graphs_path = os.path.join(raw_path, cmd_args.graph_file_name)
     scenes_path = os.path.abspath(os.path.join(raw_path, "unit_test_3.json"))
 
     # In the pytorch geometry package, only int and tensor seems to be allowed to save
@@ -568,9 +401,6 @@ if __name__ == "__main__":
     for scene in scenes:
         for target_id in range(len(scene["objects"])):
             graph = Graph(config, scene, target_id)
-            # unary_clauses_idx, binary_clauses_idx = state.get_clauses_idx()
-            # clauses_idx = unary_clauses_idx + binary_clauses_idx 
-            # print(clauses_idx)
             graphs.append(graph)
     
     edge_info = graph.get_edge_info()

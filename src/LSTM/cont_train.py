@@ -12,7 +12,7 @@ import numpy as np
 from functools import partial
 import time
 
-common_path = os.path.abspath(os.path.join(__file__, "../../../common"))
+common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 # src_path = os.path.abspath(os.path.join(__file__, "../../"))
 
 print(common_path)
@@ -21,14 +21,17 @@ sys.path.append(common_path)
 # sys.path.append(src_path)
 
 from cmd_args import cmd_args, logging
+cmd_args.test_model = "LSTM"
 from env import Env
 from embedding import GNN, SceneDataset, create_dataset
-from utils import get_config, AVAILABLE_OBJ_DICT, policy_gradient_loss, get_reward, get_final_reward,  NodeType, EdgeType, Encoder
+from utils import get_config, AVAILABLE_OBJ_DICT, policy_gradient_loss, get_reward, get_final_reward, Encoder
 from copy import deepcopy
 from torch.multiprocessing import Pool
 import torch.multiprocessing
 from rl import RefRL
 from query import SceneInterp
+
+
 
 # multiprocessing.set_start_method('spawn', True)
 
@@ -56,7 +59,7 @@ def episode(policy, data_point, graph, eps, attr_encoder, config, phase="train")
             break
 
         iter_count += 1
-        env = policy(env, phase)
+        env = policy(env)
 
         if cmd_args.sub_loss:
 
@@ -139,7 +142,7 @@ def cont_single(file_name, datapoint, policy, graphs, save_dir, attr_encoder, co
     logging.info(f"success: {success_progs}")
     # print(f"all: {all_progs}")
     # if not success, explot the best selections.
-    scene_interpreter = SceneInterp(graph.scene)
+    scene_interpreter = SceneInterp(graph.scene, config)
 
     if len(success_progs) == 0:
         logging.info("start exploit")
@@ -179,19 +182,20 @@ def cont_multiple(policy, dataset, graphs, save_dir, attr_encoder, config):
 if __name__ == '__main__':
 
     # arrange all the directories
-    data_dir = os.path.abspath(os.path.join(os.path.abspath(__file__), "../../../../data"))
-    model_dir = os.path.abspath(os.path.join(data_dir, "LSTM_model"))
+    data_dir = os.path.abspath(os.path.join(os.path.abspath(__file__), "../../../data"))
+    model_dir = os.path.abspath(os.path.join(data_dir, "model/LSTM_model"))
     cont_res_dir = os.path.abspath(os.path.join(data_dir, "eval_result/cont_res_things_3_4"))
+    if not os.path.exists(cont_res_dir):
+        os.mkdir(cont_res_dir)
 
-    scene_file_name = "img_test_4_3_testing.json"
-    graph_file_name = "img_test_4_3_testing.pkl"
-    dataset_name = "img_test_4_3_testing.pt"
-
+    scene_file_name = "4_3_testing.json"
+    graph_file_name = "4_3_testing.pkl"
+    dataset_name = "4_3_testing.pt"
 
     cmd_args.graph_file_name = graph_file_name
     cmd_args.scene_file_name = scene_file_name
     cmd_args.dataset_name = dataset_name
-    cmd_args.episode_iter = 200
+    
     print(cmd_args)
 
     raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
@@ -201,9 +205,8 @@ if __name__ == '__main__':
 
     # update the cmd_args corresponding to the info we have
     cmd_args.graph_file_name = graph_file_name
-
-    lr4_10_model_path = os.path.join(model_dir, "refrl-NodeSelLSTM-0.0001-penyes-eliminated-norno-img_test_3_1_1_1_1_training.pkl")
-    refrl = torch.load(lr4_10_model_path, map_location=torch.device('cpu'))
+    model_path = os.path.join(model_dir, "3_1_1_1_1_LSTM.pkl")
+    refrl = torch.load(model_path, map_location=cmd_args.device)
     # config = get_config()
     # refrl = RefRL(scene_dataset, config, graphs)
 

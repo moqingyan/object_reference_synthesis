@@ -7,7 +7,7 @@ common_path = os.path.abspath(os.path.join(__file__, "../../common"))
 sys.path.append(common_path)
 
 from embedding import Data
-from scene2graph import Graph, GraphNode, Edge, NodeType, EdgeType
+from scene2graph import Graph
 from cmd_args import cmd_args, logging
 from query import SceneInterp
 from utils import get_reward, get_final_reward, Encoder, NodeType, EdgeType, get_all_clauses, get_config, get_reachable_dict
@@ -174,7 +174,7 @@ class Env():
 
         useful = self.interp.useful_check(self.state, next_clause)
         logging.info(f"useful: {useful}")
-        binding_dict, new_state = self.interp.state_query(self.state, next_clause, is_uncertain)
+        binding_dict, new_state = self.interp.state_query(self.state, next_clause)
         self.state = new_state
 
         # update the success and possible fields

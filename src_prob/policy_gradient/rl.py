@@ -13,14 +13,13 @@ common_path = os.path.abspath(os.path.join(__file__, "../common"))
 sys.path.append(common_path)
 
 from cmd_args import cmd_args, logging
-from scene2graph import Graph, GraphNode, Edge
+from scene2graph import Graph
 from embedding import GNN, SceneDataset, GNNLocal, GNNGL
 from torch_geometric.data import Data, DataLoader
 from torch.autograd import Variable
 from torch import autograd
 from torch.distributions.categorical import Categorical
 from tqdm import tqdm
-from query import query
 from utils import AVAILABLE_OBJ_DICT, policy_gradient_loss, get_reward, get_final_reward,  NodeType, EdgeType, Encoder
 from env import Env 
 from decoder import NodeDecoder, GlobalDecoder, AttDecoder
@@ -225,9 +224,6 @@ def fit(refrl):
             total_ct += 1
             logging.info(ct)
             
-            # if ct == 20000:
-            #     print ("debug")
-            #     continue
             graph = refrl.graphs[data_point.graph_id]
             env, loss = fit_one(refrl, data_point, graph, eps)
             
@@ -236,7 +232,6 @@ def fit(refrl):
                 success += 1
             
             if total_ct % cmd_args.batch_size == 0:
-
                 refrl.optimizer.zero_grad()
             
             loss.backward()
@@ -284,56 +279,3 @@ def test(refrl, split="test"):
 
     avg_loss /= total_ct
     logging.info(f"Testing {split}: success {success} out of {total_ct}, average loss is {avg_loss}")
-
-# if __name__ == "__main__":
-#     data_dir = os.path.abspath(__file__ + "../../../data")
-#     root = os.path.abspath(os.path.join(data_dir, "./processed_dataset"))
-
-#     raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
-#     graphs_path = os.path.join(raw_path, cmd_args.graph_file_name)
-#     with open(graphs_path, 'rb') as graphs_file:
-#         graphs = pickle.load(graphs_file)
-
-#     config_path = os.path.join(data_dir, "config.json")
-#     with open(config_path, 'r') as config_file:
-#         config = json.load(config_file)
-    
-#     if cmd_args.max_var_num == 1:
-#         for rela in ["left", "right", "front", "behind"]:
-#             config["operation_list"].remove(rela)
-
-#     scene_dataset = SceneDataset(root, config)
-#     logging.info("Finished loading data")
-    
-#     # test_train(gnn, config, scenes[0])
-#     # print("Finished unit test: train")
-
-#     # refrl = RefRL(scene_dataset, config, graphs)
-#     if os.path.exists(cmd_args.model_path) and os.path.getsize(cmd_args.model_path) > 0:
-#         refrl = torch.load(cmd_args.model_path)
-#         logging.info("Loaded refrl model")
-#     else:
-#         refrl = RefRL(scene_dataset, config, graphs)
-#         logging.info("Constructed refrl model")
-
-#     logging.info("Start testing")
-#     start_time = time.time()
-#     test(refrl)
-#     test(refrl, "train")
-#     end_time = time.time()
-#     logging.info(f"Finished testing in {end_time - start_time}")
-    
-#     # logging.info("Start training")
-#     # start_time = time.time()
-#     # fit(refrl)
-#     # end_time = time.time()
-#     # logging.info(f"Finished training in {end_time - start_time}")
-
-#     # logging.info("Start testing")
-#     # start_time = time.time()
-#     # test(refrl)
-#     # test(refrl, "train")
-#     # end_time = time.time()
-#     # logging.info(f"Finished testing in {end_time - start_time}")
-
-#     print ("Done")

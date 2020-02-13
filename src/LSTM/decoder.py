@@ -5,13 +5,13 @@ import os
 import sys
 from torch.distributions.categorical import Categorical
 import torch.nn.functional as F
+from scene2graph import Graph, GraphNode, Edge, NodeType, EdgeType
+from utils import AVAILABLE_OBJ_DICT, Encoder
 
 common_path = os.path.abspath(os.path.join(__file__, "../common"))
 sys.path.append(common_path)
 
-from scene2graph import Graph, GraphNode, Edge, NodeType, EdgeType
 from cmd_args import cmd_args
-from utils import AVAILABLE_OBJ_DICT, Encoder, get_all_clauses
 from cmd_args import logging
 import copy
 
@@ -27,121 +27,6 @@ import copy
 #         prob, clause, clause_encoding = self.clause_decoder(env.state)
 #         env.state = self.gru_cell(cur_state, clause, clause_encoding)
 #         return prob, clause
-
-def get_clauses_idx(graph, actions):
-
-    names = graph.get_nodes()
-    name_dict = {}
-    for name_id, name in enumerate(names):
-        name_dict[name] = name_id 
-    
-    unary_clauses_idx = []
-    binary_clauses_idx = []
-
-    for clause in actions:
-        clause_idx = []
-
-        if not clause[0] == "right" or clause[0] == "left":
-            for element in clause[1:]:
-                if type(element) == int:
-                    element = f"var_{element}"
-                clause_idx.append(name_dict[element])
-
-            unary_clauses_idx.append(clause_idx)
-
-        else:
-            for element in clause:
-                if type(element) == int:
-                    element = f"var_{element}"
-
-                if element == "right":
-                    element = "center_right"
-                if element == "behind":
-                    element = "center_behind"
-                    
-                clause_idx.append(name_dict[element])
-            binary_clauses_idx.append(clause_idx)
-
-    return unary_clauses_idx, binary_clauses_idx
-
-class ClauseDecoder(nn.Module):
-
-    def __init__(self, hidden_dim=cmd_args.hidden_dim):
-        super().__init__()
-        self.binary_op_layer = nn.Sequential(
-            nn.Linear(hidden_dim*3, hidden_dim*2),
-            nn.ReLU(),
-            nn.Linear(hidden_dim*2, hidden_dim)
-        )
-
-        self.ternary_op_layer = nn.Sequential(
-            nn.Linear(hidden_dim*4, hidden_dim*2),
-            nn.ReLU(),
-            nn.Linear(hidden_dim*2, hidden_dim)
-        )
-
-        self.common_layer = nn.Sequential(
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, 1)
-        )
-        self.gru_cell = nn.GRUCell(hidden_dim, hidden_dim)
-
-    def get_var_locs(self, graph, rel=None):
-        return graph.get_var_locs(rel)
-
-    def idx_to_attr(self, graph, sel):
-        return graph.get_attr_by_idx(sel)
-
-    def idx_to_rela(self, graph, sel):
-        return graph.get_rela_by_idx(sel)
-
-    def idx_to_var(self, graph, sel):
-        return int(graph.get_var_by_idx(sel)[-1])
-
-    def idx_to_attr_or_rela(self, graph, sel):
-        return graph.get_attr_or_rela_by_idx(sel)
-
-    def locs_to_byte(self, locs, num):
-        res = [0] * num
-        for i in range(num):
-            if i in locs:
-                res[i] = 1
-        return torch.BoolTensor(res)
-
-    def forward(self, graph_embeddings, graph, ref, eps, phase="train"):
-
-        local_embedding, global_embedding = graph_embeddings
-        actions = get_all_clauses(graph.config)
-        unary_clauses_idx, binary_clauses_idx = get_clauses_idx(graph, actions)
-        x = []
-        
-        global_embedding_exp = global_embedding.expand(len(unary_clauses_idx), 1, global_embedding.shape[1])
-        unary_rep = torch.cat((local_embedding[unary_clauses_idx, :], global_embedding_exp), dim=1).view(len(unary_clauses_idx), 3 * global_embedding.shape[-1])
-        x.append(self.binary_op_layer(unary_rep))
-
-        global_embedding_exp = global_embedding.expand(len(binary_clauses_idx), 1, global_embedding.shape[1])
-        binary_rep = torch.cat((local_embedding[binary_clauses_idx, :], global_embedding_exp), dim=1).view(len(binary_clauses_idx), 4 * global_embedding.shape[-1])
-        x.append(self.ternary_op_layer(binary_rep))
-        # logging.info(f"local embedding: {local_embedding}")
-        
-        x = torch.cat(x)
-        probs = F.softmax(self.common_layer(x).view(-1))
-
-        distr = Categorical(probs)
-        if cmd_args.test_type == "max" and self.training == False:
-             _, sel = probs[0].max(0)
-        else:
-            sel = distr.sample()
-           
-        prob = torch.index_select(probs, 0, sel)
-        clause = actions[sel]
-        clause_embedding = x[sel]
-        local_embedding = self.gru_cell(clause_embedding.expand(local_embedding.shape[0], clause_embedding.shape[-1]), local_embedding)
-        global_embedding = self.gru_cell(clause_embedding.view(1, clause_embedding.shape[-1]), global_embedding)
-
-        return prob, clause, (local_embedding, global_embedding)
 
 # decode a clause we get, or use other method instead
 class AttClauseDecoder(nn.Module):
@@ -450,7 +335,7 @@ class NodeDecoder(nn.Module):
                 return key 
         return 
 
-    def forward(self, graph_embedding, graph, eps, phase="train"):
+    def forward(self, graph_embedding, graph, ref, eps, phase="train"):
         
         clause = []
         prob = 1
