@@ -34,6 +34,7 @@ class SampleDistr(object):
         self.parser.add_argument("--lr", default=0.00005, type=float)
         self.parser.add_argument("--eps", default=0.95, type=float)
         self.parser.add_argument("--eps_decay", default=0.99, type=float)
+        self.parser.add_argument("--dqn_eps_decay", default=1000, type=float)
         self.parser.add_argument("--gamma", default=0.95, type=float, help="reward discount factor")
         self.parser.add_argument("--batch_size", default=5, type=int)
         self.parser.add_argument("--reward_penalty", default="yes", type=str, help='whether we are adding a penalty when the problem is not solved, yes/no')
@@ -47,6 +48,7 @@ class SampleDistr(object):
         self.parser.add_argument('--normalize_reward', default="no", type=str, help="whether to normalize the reward or not, yes/no")
         self.parser.add_argument('--data_dir', default=data_dir, type=str)
         self.parser.add_argument('--model_dir', default="model", type=str)
+        self.parser.add_argument('--model_name', default=None, type=str)
         self.parser.add_argument('--log_dir', default=None, type=str)
         self.parser.add_argument('--max_gradient_steps', default=None, type=int)
         self.parser.add_argument('--record_gradient_steps', default=100, type=int)
@@ -55,7 +57,6 @@ class SampleDistr(object):
         self.parser.add_argument('--test_iter', default=100, type=int, help="number of test iterations taken")
         self.parser.add_argument('--test_type', default="sample", type=str, help="sample/max")
         self.parser.add_argument('--test_model', default="DQN", type=str)
-        self.parser.add_argument("--beam_size", default=30, type=int)
         self.parser.add_argument("--hard_constraint", default="no", type=str)
         self.parser.add_argument("--seed", default=0, type=int)
 
@@ -88,8 +89,11 @@ cmd_args.model_save_dir = os.path.abspath(os.path.join(model_dir,
 if not os.path.exists(cmd_args.model_save_dir):
     os.mkdir(cmd_args.model_save_dir)
 
-cmd_args.model_path = os.path.abspath(os.path.join(model_dir,
-    f"./model-{cmd_args.log_prefix}-update{cmd_args.target_update}-{cmd_args.lr}-pen{cmd_args.reward_penalty}-{cmd_args.reward_type}-nor{cmd_args.normalize_reward}-{cmd_args.test_set}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"))
+if type(cmd_args.model_name) == type(None):
+    cmd_args.model_name = f"./model-{cmd_args.log_prefix}-update{cmd_args.target_update}-{cmd_args.lr}-pen{cmd_args.reward_penalty}-{cmd_args.reward_type}-nor{cmd_args.normalize_reward}-{cmd_args.test_set}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
+
+cmd_args.model_path = os.path.abspath(os.path.join(model_dir, cmd_args.model_name)
+        
     
 data_dir = os.path.abspath(__file__ + "../../../../data")
 if cmd_args.log_dir == None:
