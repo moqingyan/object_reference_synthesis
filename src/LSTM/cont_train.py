@@ -180,45 +180,25 @@ def cont_multiple(policy, dataset, graphs, save_dir, attr_encoder, config):
     pool.starmap( partial(cont_single, policy = policy, graphs=graphs, save_dir=save_dir, attr_encoder=attr_encoder, config=config), enumerate(dataloader))
 
 if __name__ == '__main__':
-
+    
     # arrange all the directories
-    data_dir = os.path.abspath(os.path.join(os.path.abspath(__file__), "../../../data"))
-    model_dir = os.path.abspath(os.path.join(data_dir, "model/LSTM_model"))
-    cont_res_dir = os.path.abspath(os.path.join(data_dir, "eval_result/cont_res_things_3_4"))
+    data_dir = cmd_args.data_dir
+    model_dir = cmd_args.model_dir
+    cont_res_dir = os.path.abspath(os.path.join(data_dir, f"eval_result/{cmd_args.cont_res_name}"))
     if not os.path.exists(cont_res_dir):
         os.mkdir(cont_res_dir)
 
-    scene_file_name = "4_3_testing.json"
-    graph_file_name = "4_3_testing.pkl"
-    dataset_name = "4_3_testing.pt"
-
-    cmd_args.graph_file_name = graph_file_name
-    cmd_args.scene_file_name = scene_file_name
-    cmd_args.dataset_name = dataset_name
-    
-    print(cmd_args)
-
     raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
-    scenes_path = os.path.abspath(os.path.join(raw_path, scene_file_name))
-    graphs_path = os.path.join(raw_path, graph_file_name)
-
+    scenes_path = os.path.abspath(os.path.join(raw_path, cmd_args.scene_file_name))
+    graphs_path = os.path.join(raw_path, cmd_args.graph_file_name)
 
     # update the cmd_args corresponding to the info we have
-    cmd_args.graph_file_name = graph_file_name
-    model_path = os.path.join(model_dir, "3_1_1_1_1_LSTM.pkl")
-    refrl = torch.load(model_path, map_location=cmd_args.device)
-    # config = get_config()
-    # refrl = RefRL(scene_dataset, config, graphs)
-
+    refrl = torch.load(cmd_args.model_path, map_location=cmd_args.device)
     graphs, scene_dataset = create_dataset(data_dir, scenes_path, graphs_path)
-    logging.info ("start training")
+    logging.info ("start cont training")
 
     dataloader = DataLoader(scene_dataset)
-    # for ct, datapoint in enumerate(dataloader):
-    #     cont_single(refrl.policy, datapoint, graphs, os.path.join(cont_res_dir, str(ct)), refrl.dataset.attr_encoder, refrl.config)
     start_time = time.time()
-    # cont_multiple(refrl.policy, scene_dataset, graphs, cont_res_dir, refrl.dataset.attr_encoder, refrl.config)
-
     for ct, datapoint in enumerate(dataloader):
         logging.info (ct)
         cont_single(ct, datapoint, refrl.policy, graphs, cont_res_dir, refrl.dataset.attr_encoder, refrl.config)

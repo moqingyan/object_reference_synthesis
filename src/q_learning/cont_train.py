@@ -246,46 +246,28 @@ def cont_multiple(model, dataset, graphs, save_dir, attr_encoder, config):
 
 
 if __name__ == '__main__':
-
-    # DC.steps_done = 10000
     
     # arrange all the directories
-    data_dir = os.path.abspath(os.path.join(os.path.abspath(__file__), "../../../data"))
-    model_dir = os.path.abspath(os.path.join(data_dir, "model/DQN_model"))
-    cont_res_dir = os.path.abspath(os.path.join(data_dir, "eval_result/DQN_d2_hard_7"))
+    data_dir = cmd_args.data_dir
+    model_dir = cmd_args.model_dir
+    cont_res_dir = os.path.abspath(os.path.join(data_dir, f"eval_result/{cmd_args.cont_res_name}"))
     if not os.path.exists(cont_res_dir):
         os.mkdir(cont_res_dir)
 
-    scene_file_name = "unit_test_hard_obj_7.json"
-    graph_file_name = "unit_test_hard_obj_7.pkl"
-    dataset_name = "unit_test_hard_obj_7.pt"
-
-    cmd_args.graph_file_name = graph_file_name
-    cmd_args.scene_file_name = scene_file_name
-    cmd_args.dataset_name = dataset_name
-    print(cmd_args)
-
     raw_path = os.path.abspath(os.path.join(data_dir, "./processed_dataset/raw"))
-    scenes_path = os.path.abspath(os.path.join(raw_path, scene_file_name))
-    graphs_path = os.path.join(raw_path, graph_file_name)
-
+    scenes_path = os.path.abspath(os.path.join(raw_path, cmd_args.scene_file_name))
+    graphs_path = os.path.join(raw_path, cmd_args.graph_file_name)
 
     # update the cmd_args corresponding to the info we have
-    cmd_args.graph_file_name = graph_file_name
-
-    model_path = os.path.join(model_dir, "3_1_1_1_1_DQN.pkl")
-    print(model_path)
-    model = torch.load(model_path, map_location=torch.device('cuda'))
-
+    model = torch.load(cmd_args.model_path, map_location=cmd_args.device)
     graphs, scene_dataset = create_dataset(data_dir, scenes_path, graphs_path)
     logging.info ("start cont training")
 
-    
     dataloader = DataLoader(scene_dataset)
+    start_time = time.time()
     for ct, datapoint in enumerate(dataloader):
-        start_time = time.time()
+        logging.info (ct)
         cont_single(ct, datapoint, model, graphs, cont_res_dir, scene_dataset.attr_encoder, scene_dataset.config, save=True, n=10)
-        end_time = time.time()
-        logging.info (f"finished_training in {end_time - start_time}")
-        
-    print(f"time used: {end_time - start_time}")
+    end_time = time.time()
+
+    logging.info (f"finished_training in {end_time - start_time}")

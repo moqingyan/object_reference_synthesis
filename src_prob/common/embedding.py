@@ -89,7 +89,10 @@ def create_dataset(data_dir, scenes_path, graphs_path, config=None):
 
         for scene in scenes:
             for target_id in range(len(scene["objects"])):
-                graph = Graph(config, scene, target_id, ground_truth_scene=scene["ground_truth"])
+                ground_truth_scene = None
+                if "ground_truth" in scene.keys():
+                    ground_truth_scene = scene["ground_truth"]
+                graph = Graph(config, scene, target_id, ground_truth_scene=ground_truth_scene)
                 graphs.append(graph)
 
         with open(graphs_path, 'wb') as graphs_file:

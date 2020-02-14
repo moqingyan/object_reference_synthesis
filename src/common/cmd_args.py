@@ -23,6 +23,7 @@ class SampleDistr(object):
         self.parser.add_argument("--log_prefix", default="", type=str)
         self.parser.add_argument("--save_num", default=10, type=int, help="for every save_num of iteration processed, we save the model once")
 
+        self.parser.add_argument("--cont_res_name", default=None, type=str)
         self.parser.add_argument("--graph_file_name", default="unit_test_3.pkl", type=str)
         self.parser.add_argument("--dataset_name", default="unit_test_3.pt", type=str)
         self.parser.add_argument("--scene_file_name", default="unit_test_3.json")
@@ -47,7 +48,7 @@ class SampleDistr(object):
         self.parser.add_argument('--decay', default=0.95, type=float, help="the learning rates for the optimizers")
         self.parser.add_argument('--normalize_reward', default="no", type=str, help="whether to normalize the reward or not, yes/no")
         self.parser.add_argument('--data_dir', default=data_dir, type=str)
-        self.parser.add_argument('--model_dir', default="model", type=str)
+        self.parser.add_argument('--model_dir', default="model/", type=str)
         self.parser.add_argument('--model_name', default=None, type=str)
         self.parser.add_argument('--log_dir', default=None, type=str)
         self.parser.add_argument('--max_gradient_steps', default=None, type=int)
@@ -83,7 +84,11 @@ sp = SampleDistr()
 cmd_args = sp.args
 
 data_dir = cmd_args.data_dir
-model_dir = os.path.abspath(os.path.join(data_dir, cmd_args.model_dir))
+if not 'model/' == cmd_args.model_dir:
+    model_dir = os.path.abspath(os.path.join(data_dir, 'model/' + cmd_args.model_dir))
+else:
+    model_dir = os.path.abspath(os.path.join(data_dir, 'model/'))
+
 cmd_args.model_save_dir = os.path.abspath(os.path.join(model_dir,
     f"./model-{cmd_args.log_prefix}-update{cmd_args.target_update}-{cmd_args.lr}-pen{cmd_args.reward_penalty}-{cmd_args.reward_type}-nor{cmd_args.normalize_reward}-{cmd_args.test_set}_{cmd_args.gnn_version}_{cmd_args.decoder_version}"))
 if not os.path.exists(cmd_args.model_save_dir):
@@ -92,7 +97,7 @@ if not os.path.exists(cmd_args.model_save_dir):
 if type(cmd_args.model_name) == type(None):
     cmd_args.model_name = f"./model-{cmd_args.log_prefix}-update{cmd_args.target_update}-{cmd_args.lr}-pen{cmd_args.reward_penalty}-{cmd_args.reward_type}-nor{cmd_args.normalize_reward}-{cmd_args.test_set}_{cmd_args.gnn_version}_{cmd_args.decoder_version}.pkl"
 
-cmd_args.model_path = os.path.abspath(os.path.join(model_dir, cmd_args.model_name)
+cmd_args.model_path = os.path.abspath(os.path.join(model_dir, cmd_args.model_name))
         
     
 data_dir = os.path.abspath(__file__ + "../../../../data")
