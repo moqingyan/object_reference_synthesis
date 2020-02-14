@@ -26,3 +26,6 @@ Method 3. build from scratch
 You can install pytorch geometric according to the documentation here
 https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
 
+
+### Run the scripts
+In this directory, there is a run.py which invokes different scripts to execute different tasks. You can tune the parameters in the run.py to change the settings. Further, there are more parameters you can change in the src/cmd_args, and src_prob/cmd_args.

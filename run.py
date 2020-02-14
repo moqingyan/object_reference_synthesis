@@ -1,5 +1,5 @@
 import os
-
+import subprocess
 # This is script as the entry point over different scripts in the whole folder
 
 # --------------------- Ablation -----------------------
@@ -38,6 +38,8 @@ target_update = 1000 # DQN: When to update the target net
 # ---------------------- Model Usage -------------------
 model_dir = None
 model_name = None
+model_dir_arg = None
+model_name_arg = None
 
 # set the default model dir according to the ablation setting 
 if not type(model_dir) == type(None):
@@ -89,4 +91,18 @@ print(runner_path)
 
 # ---------------------- Set the parameters -------------------
 test_set_arg = f"--test_set {test_set}"
+lr_arg = f"--lr {lr}"
+eps_arg = f"--eps {eps}"
+episode_iter_arg = f"--episode_iter {episode_iter}"
+test_iter_arg = f"--test_iter {test_iter}"
+eps_decay_arg = f"--eps_decay {eps_decay}"
+dqn_eps_decay_arg = f"--dqn_eps_decay {dqn_eps_decay}"
+target_update_arg = f"--target_update {target_update}"
+prob_dataset_arg = f"--prob_dataset {'yes' if prob_dataset else 'no'}"
 
+# ------------------- Subprocess Call --------------------------
+all_args = [test_set_arg, lr_arg, eps_arg, episode_iter_arg, test_iter_arg, eps_decay_arg, dqn_eps_decay_arg, target_update_arg, prob_dataset_arg, model_dir_arg, model_name_arg]
+used_args = list(filter(lambda arg:not type(arg) == type(None), all_args))
+command = ["python", runner_path] + used_args
+print(command)
+subprocess.call(command)
