@@ -305,6 +305,56 @@ def synthesize(interpreter, target_object, state, is_uncertain, max_depth):
 
     return None
 
+def bool2int(x):
+    return ' '.join(map(str, x)) 
+
+visited_states_ids = set()
+def eu_synthesize_rec(interpreter, target_object, state, is_uncertain, max_depth):
+    
+    if max_depth == 0:
+        return None 
+
+    global visited_states_ids
+    to_explore_states = []
+    # print(f"left to explore: {max_depth}")
+    # print(f"we have visited: {visited_states_ids}")
+    # search depth 1
+    for i, c_i in enumerate(interpreter.clauses):
+
+        state_i = interpreter.step(state, c_i, is_uncertain)
+
+        state_id = bool2int(state_i)
+        if state_id not in visited_states_ids:
+            visited_states_ids.add(state_id)
+            to_explore_states.append((state_i, c_i))
+
+        if interpreter.is_state_correct(target_object, state_i, is_uncertain):
+            return Program([c_i])
+
+    for new_state, clause in to_explore_states:
+        # print (clause)
+        prog = eu_synthesize_rec(interpreter, target_object, new_state, is_uncertain, max_depth - 1)
+        if not type(prog) == type(None):
+            return  Program([clause] + prog.clauses)
+
+    return None
+
+def eu_synthesize(interpreter, target_object, state, is_uncertain, max_depth):
+
+    
+
+    correct_res = None 
+    for depth in range(1, max_depth):
+        global visited_states_ids
+        visited_states_ids = set()
+
+        # print(f"d: {depth}")
+        prog = eu_synthesize_rec(interpreter, target_object, state, is_uncertain, depth)
+        if not type(prog) == type(None):
+            return prog
+
+    return None
+
 if __name__ == '__main__':
     # Step 1: Parameters
     n_vars = 3
