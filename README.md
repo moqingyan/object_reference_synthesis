@@ -26,8 +26,13 @@ Method 3. build from scratch
 You can install pytorch geometric according to the documentation here
 https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
 
-
+### Setup the directories
+Type make in the current directory to setup the directory hierachies.
+```
+make 
+```
 ### Run the scripts
+
 In this directory, there is a run.py which invokes different scripts to execute different tasks. You can tune the parameters in the run.py to change the settings. Further, there are more parameters you can change in the src/cmd_args, and src_prob/cmd_args.
 
 Note: Please remember that, if there is a previous model on the model path, we will load the model and continously train on it. So if you want to retrain the model using another method, move the old model to some other directory.
