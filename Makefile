@@ -6,6 +6,7 @@ data_hier:
 	mkdir -p data
 	mkdir -p data/log
 	mkdir -p data/eval_result
+	mkdir -p data/processed_dataset/processed
 
 clean:
 	rm ./data/processed_dataset/processed/*.pt
