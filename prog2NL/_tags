@@ -1,0 +1,4 @@
+<src/*>: include
+true: package(unix), package(str), package(core)
+true: package(ocamlgraph), package(yojson)
+true: package(ppx_compare), package(ppx_deriving.std), package(ppx_deriving_yojson)
